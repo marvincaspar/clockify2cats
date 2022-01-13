@@ -1,0 +1,5 @@
+.env
+
+.vscode
+dist/
+cats_report_*.csv
