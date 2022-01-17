@@ -20,7 +20,20 @@ import (
 
 var (
 	timeFormat = "2006-01-02T15:04:05.999Z"
+	start      string
+	week       int
+	category   string
+	withText   bool
+	fileOutput bool
 )
+
+const usage = `Usage of clockify2cats:
+  -w, --week week number for report (don't use in combination with start)
+  -s, --start Startdate for report YYYY-MM-DD (don't use in combination with week)
+  -c, --category Category identifyer (default: ID)
+  -t, --text Add Clockify description as text to report
+  -f, --file Write report to file
+`
 
 type ClockifyTimeEntry struct {
 	Description  string `json:"description"`
@@ -34,35 +47,67 @@ type ClockifyTimeEntry struct {
 	} `json:"project"`
 }
 
+type CatsEntity struct {
+	CatsID    string
+	Text      string
+	Durations map[string]time.Duration
+}
+
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		// log.Fatal("Error loading .env file")
-		log.Println("No .env file found. Set environment variables manually.")
-	}
+	godotenv.Load()
+	validateEnvironmentVariables()
+	parseFlags()
 
-	start := flag.String("start", "", "Start date")
-	week := flag.Int("week", 0, "Calendar week")
-	flag.Parse()
-
-	if *start == "" && *week == 0 {
+	if start == "" && week == 0 {
 		log.Fatal("No start date or calendar week specified")
 	}
 
-	*start = *start + "T00:00:00Z" //"2022-01-10T00:00:00Z"
-	if *week > 0 {
+	start = start + "T00:00:00Z" //"2022-01-10T00:00:00Z"
+	if week > 0 {
 		year := time.Now().Year()
 		timezone := time.FixedZone("Europe/Berlin", 0)
-		*start = firstDayOfISOWeek(year, *week, timezone).Format(timeFormat)
+		start = firstDayOfISOWeek(year, week, timezone).Format(timeFormat)
 	}
 
-	timeEntries := fetchClockifyData(*start)
+	timeEntries := fetchClockifyData(start)
 
-	convertedTimeEntries := convertTimeEntriesToMap(*start, timeEntries)
+	convertedTimeEntries := convertTimeEntries(start, timeEntries, withText)
 
-	data := generateCatsReportData(convertedTimeEntries, false)
+	data := generateCatsReportData(convertedTimeEntries, withText)
 
-	writeToFile(*start, data)
+	if fileOutput {
+		writeToFile(start, data)
+	}
+}
+
+func validateEnvironmentVariables() {
+	workspaceId := os.Getenv("CLOCKIFY_WORKSPACE_ID")
+	if workspaceId == "" {
+		log.Fatal("CLOCKIFY_WORKSPACE_ID is not set")
+	}
+	userId := os.Getenv("CLOCKIFY_USER_ID")
+	if userId == "" {
+		log.Fatal("CLOCKIFY_USER_ID is not set")
+	}
+	apiKey := os.Getenv("CLOCKIFY_API_KEY")
+	if apiKey == "" {
+		log.Fatal("CLOCKIFY_API_KEY is not set")
+	}
+}
+
+func parseFlags() {
+	flag.IntVar(&week, "week", 0, "Calendar week")
+	flag.IntVar(&week, "w", 0, "Calendar week")
+	flag.StringVar(&start, "start", "", "Start date")
+	flag.StringVar(&start, "s", "", "Start date")
+	flag.StringVar(&category, "category", "ID", "Category identifyer")
+	flag.StringVar(&category, "c", "ID", "Category identifyer")
+	flag.BoolVar(&withText, "text", false, "Print with text")
+	flag.BoolVar(&withText, "t", false, "Print with text")
+	flag.BoolVar(&fileOutput, "file", false, "Write report to file")
+	flag.BoolVar(&fileOutput, "f", false, "Write report to file")
+	flag.Usage = func() { fmt.Print(usage) }
+	flag.Parse()
 }
 
 func fetchClockifyData(start string) []ClockifyTimeEntry {
@@ -96,9 +141,9 @@ func fetchClockifyData(start string) []ClockifyTimeEntry {
 	return timeEntries
 }
 
-func convertTimeEntriesToMap(start string, timeEntries []ClockifyTimeEntry) map[string]map[string]time.Duration {
+func convertTimeEntries(start string, timeEntries []ClockifyTimeEntry, withText bool) []CatsEntity {
 	startToDate, _ := time.Parse(timeFormat, start)
-	result := make(map[string]map[string]time.Duration)
+	catsEntries := []CatsEntity{}
 
 	for _, timeEntry := range timeEntries {
 		startDate, _ := time.Parse(timeFormat, timeEntry.TimeInterval.Start)
@@ -106,26 +151,48 @@ func convertTimeEntriesToMap(start string, timeEntries []ClockifyTimeEntry) map[
 		duration, _ := time.ParseDuration(cleanDuration)
 
 		catsID := getCatsID(timeEntry)
-
-		if _, ok := result[catsID]; !ok {
-			result[catsID] = map[string]time.Duration{
-				startToDate.AddDate(0, 0, 0).Format("2006-01-02"): time.Duration(0), // Monday
-				startToDate.AddDate(0, 0, 1).Format("2006-01-02"): time.Duration(0), // Tuesday
-				startToDate.AddDate(0, 0, 2).Format("2006-01-02"): time.Duration(0), // Wednesday
-				startToDate.AddDate(0, 0, 3).Format("2006-01-02"): time.Duration(0), // Thursday
-				startToDate.AddDate(0, 0, 4).Format("2006-01-02"): time.Duration(0), // Friday
-				startToDate.AddDate(0, 0, 5).Format("2006-01-02"): time.Duration(0), // Saturday
-				startToDate.AddDate(0, 0, 6).Format("2006-01-02"): time.Duration(0), // Sunday
-			}
+		text := ""
+		if withText {
+			text = timeEntry.Description
 		}
 
-		currentTime := result[catsID][startDate.Format("2006-01-02")]
+		index := findCatsEntryID(catsEntries, catsID, text)
+
+		if index == -1 {
+			catsEntries = append(catsEntries, CatsEntity{
+				CatsID: catsID,
+				Text:   timeEntry.Description,
+				Durations: map[string]time.Duration{
+					startToDate.AddDate(0, 0, 0).Format("2006-01-02"): time.Duration(0), // Monday
+					startToDate.AddDate(0, 0, 1).Format("2006-01-02"): time.Duration(0), // Tuesday
+					startToDate.AddDate(0, 0, 2).Format("2006-01-02"): time.Duration(0), // Wednesday
+					startToDate.AddDate(0, 0, 3).Format("2006-01-02"): time.Duration(0), // Thursday
+					startToDate.AddDate(0, 0, 4).Format("2006-01-02"): time.Duration(0), // Friday
+					startToDate.AddDate(0, 0, 5).Format("2006-01-02"): time.Duration(0), // Saturday
+					startToDate.AddDate(0, 0, 6).Format("2006-01-02"): time.Duration(0), // Sunday
+				},
+			},
+			)
+			index = len(catsEntries) - 1
+		}
+
+		currentTime := catsEntries[index].Durations[startDate.Format("2006-01-02")]
 		currentTime += duration
 
-		result[catsID][startDate.Format("2006-01-02")] = currentTime
+		catsEntries[index].Durations[startDate.Format("2006-01-02")] = currentTime
 	}
 
-	return result
+	return catsEntries
+}
+
+func findCatsEntryID(catsEntries []CatsEntity, catsID string, text string) int {
+	for i, catsEntry := range catsEntries {
+		if catsEntry.CatsID == catsID && catsEntry.Text == text {
+			return i
+		}
+	}
+
+	return -1
 }
 
 func getCatsID(t ClockifyTimeEntry) string {
@@ -139,37 +206,38 @@ func getCatsID(t ClockifyTimeEntry) string {
 		}
 	}
 
-	// Get CATS ID from description
-	return strings.Fields(t.Description)[0]
+	return "-"
 }
 
-func generateCatsReportData(convertedTimeEntries map[string]map[string]time.Duration, printOutput bool) string {
+func generateCatsReportData(catsEntries []CatsEntity, withText bool) string {
 	var output string
 	p := message.NewPrinter(language.Make("de-DE"))
-	catsMeta := "%s\t\t\tID\t"
+	catsMeta := "%s\t\t%s\t%s\t"
+	text := ""
 
-	for key, dates := range convertedTimeEntries {
+	for _, catsEntry := range catsEntries {
 		var values []interface{}
 
 		// we have to sort the dates because looping over a map is not guaranteed to be in order
 		dateKeys := make([]string, 0)
-		for k, _ := range dates {
+		for k, _ := range catsEntry.Durations {
 			dateKeys = append(dateKeys, k)
 		}
 		sort.Strings(dateKeys)
 
 		for _, date := range dateKeys {
-			values = append(values, p.Sprintf("%.2f", dates[date].Hours()))
+			values = append(values, p.Sprintf("%.2f", catsEntry.Durations[date].Hours()))
 		}
-		catsStart := fmt.Sprintf(catsMeta, key)
+		if withText {
+			text = catsEntry.Text
+		}
+		catsStart := fmt.Sprintf(catsMeta, catsEntry.CatsID, text, category)
 		catsStart += strings.Repeat("%s\t\t", len(values))
 
 		output += fmt.Sprintf(catsStart, values...) + "\n"
 	}
 
-	if printOutput {
-		fmt.Printf(output)
-	}
+	fmt.Printf(output)
 
 	return output
 }

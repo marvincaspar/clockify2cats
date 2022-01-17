@@ -1,13 +1,35 @@
 # Clockify2Cats
 
-This is a command line tool which exports your time from clockify and prints a report into a format that you can use for SAP CATS (Cross-Application Time Sheet).
+`clockify2cats` is a tool which exports your time from clockify and prints a report into a format that you can capy and paste into SAP CATS (Cross-Application Time Sheet).
 
-This report is build for the following CATS columns:
+![Clockify2Cats usage](./clockify2cats.gif)
+
+## Usage
+
+To generate the report run `clockify2cats` with the following arguments:
+
+Usage of clockify2cats:
+-  -w, --week week number for report (don't use in combination with start)
+-  -s, --start Startdate for report YYYY-MM-DD (don't use in combination with week)
+-  -c, --category Category identifyer (default: ID)
+-  -t, --text Add Clockify description as text to report
+-  -f, --file write report to file
+
+Example: 
+```
+$ clockify2cats --week 2
+
+CATSID-1                    ID      8.06            4.68            1.26            2.34            7.62            0.00            0.00
+CATSID-2                    ID      0.00            0.47            6.02            5.13            0.73            0.00            0.00
+CATSID-3                    ID      0.00            2.93            0.00            0.53            0.00            0.00            0.00
+```
+
+This report is build for the CATS columns:
 
 - Rec. order
 - Description - empty
-- Text - currently empty
-- Category - currently always ID
+- Text - use flag `-t` to use it
+- Category - default `ID`, can be set with flag `-c`
 - Monday
 - Tuesday
 - Wensday
@@ -16,37 +38,22 @@ This report is build for the following CATS columns:
 - Saturday
 - Sunday
 
-## Clockify
 
-Tracking time in clockify and follow one of the two conventions:
+## Clockify setup
 
-1. Create a project and name it like `<ProjectName> (<CatsID>)` (recommended)
-2. Empty Project and use the description like `<CatsID> (<ProjectName>)`
+Create projects and name it like `<ProjectName> (<CatsID>)`. Track your time for the projects. Use the clockify description field to add additional information for the CATS text field.
 
+Generate an API for clockify. It can be fount in your profile settings.
 
-Get your workspace id, user id and api key and set them as environment vaiable or create a `.env` file with the following variables:
+Fetch your user id and your default workspace id from the api `curl -H 'X-Api-Key: <API-KEY>' https://api.clockify.me/api/v1/user | jq`.
+
+Set your workspace id, user id and api key and set them as environment variable or create a `.env` file with the following variables:
 
 ```
 CLOCKIFY_WORKSPACE_ID=xxxxxxxxxxxxxxxxxxxxxxxx
 CLOCKIFY_USER_ID=xxxxxxxxxxxxxxxxxxxxxxxx
 CLOCKIFY_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
-
-## Generate report
-
-To generate the report run the cli tool with one of the following arguments:
-
-1. `--start <DATE>` where date is the first day of the week with the format `YYYY-MM-dd`
-2. `--week <WEEK>` where week is the calendar week number
-
-```
-
-CATSID-1                    ID      8.06            4.68            1.26            2.34            7.62            0.00            0.00
-CATSID-2                    ID      0.00            0.47            6.02            5.13            0.73            0.00            0.00
-CATSID-3                    ID      0.00            2.93            0.00            0.53            0.00            0.00            0.00
-
-```
-
 
 ## Release
 
