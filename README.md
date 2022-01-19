@@ -11,9 +11,9 @@ To generate the report run `clockify2cats` with the following arguments:
 Usage of clockify2cats:
 -  -w, --week week number for report (don't use in combination with start)
 -  -s, --start Startdate for report YYYY-MM-DD (don't use in combination with week)
+-  -C, --copy Copy report to clipboard
 -  -c, --category Category identifyer (default: ID)
 -  -t, --text Add Clockify description as text to report
--  -f, --file write report to file
 
 Example: 
 ```

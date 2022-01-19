@@ -13,26 +13,27 @@ import (
 	"strings"
 	"time"
 
+	"github.com/atotto/clipboard"
 	"github.com/joho/godotenv"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 )
 
 var (
-	timeFormat = "2006-01-02T15:04:05.999Z"
-	start      string
-	week       int
-	category   string
-	withText   bool
-	fileOutput bool
+	timeFormat      = "2006-01-02T15:04:05.999Z"
+	start           string
+	week            int
+	category        string
+	withText        bool
+	copyToClipboard bool
 )
 
 const usage = `Usage of clockify2cats:
   -w, --week week number for report (don't use in combination with start)
   -s, --start Startdate for report YYYY-MM-DD (don't use in combination with week)
+  -C, --copy Copy report to clipboard
   -c, --category Category identifyer (default: ID)
   -t, --text Add Clockify description as text to report
-  -f, --file Write report to file
 `
 
 type ClockifyTimeEntry struct {
@@ -75,8 +76,8 @@ func main() {
 
 	data := generateCatsReportData(convertedTimeEntries, withText)
 
-	if fileOutput {
-		writeToFile(start, data)
+	if copyToClipboard {
+		clipboard.WriteAll(data)
 	}
 }
 
@@ -100,12 +101,12 @@ func parseFlags() {
 	flag.IntVar(&week, "w", 0, "Calendar week")
 	flag.StringVar(&start, "start", "", "Start date")
 	flag.StringVar(&start, "s", "", "Start date")
+	flag.BoolVar(&copyToClipboard, "copy", false, "Copy report to clipboard")
+	flag.BoolVar(&copyToClipboard, "C", false, "Copy report to clipboard")
 	flag.StringVar(&category, "category", "ID", "Category identifyer")
 	flag.StringVar(&category, "c", "ID", "Category identifyer")
 	flag.BoolVar(&withText, "text", false, "Print with text")
 	flag.BoolVar(&withText, "t", false, "Print with text")
-	flag.BoolVar(&fileOutput, "file", false, "Write report to file")
-	flag.BoolVar(&fileOutput, "f", false, "Write report to file")
 	flag.Usage = func() { fmt.Print(usage) }
 	flag.Parse()
 }
@@ -161,7 +162,7 @@ func convertTimeEntries(start string, timeEntries []ClockifyTimeEntry, withText 
 		if index == -1 {
 			catsEntries = append(catsEntries, CatsEntity{
 				CatsID: catsID,
-				Text:   timeEntry.Description,
+				Text:   text,
 				Durations: map[string]time.Duration{
 					startToDate.AddDate(0, 0, 0).Format("2006-01-02"): time.Duration(0), // Monday
 					startToDate.AddDate(0, 0, 1).Format("2006-01-02"): time.Duration(0), // Tuesday
@@ -240,12 +241,6 @@ func generateCatsReportData(catsEntries []CatsEntity, withText bool) string {
 	fmt.Printf(output)
 
 	return output
-}
-
-func writeToFile(start string, output string) {
-	startDate, _ := time.Parse(timeFormat, start)
-	filename := fmt.Sprintf("cats_report_%s.csv", startDate.Format("2006-01-02"))
-	ioutil.WriteFile(filename, []byte(output), 0644)
 }
 
 // https://xferion.com/golang-reverse-isoweek-get-the-date-of-the-first-day-of-iso-week/
