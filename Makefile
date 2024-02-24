@@ -18,7 +18,6 @@ install:
 clean:
 	go clean
 	rm -rf dist
-	rm -f cats_report_*.csv
 
 fmt:
 	go fmt $$(go list ./... | grep -v /vendor/)

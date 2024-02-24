@@ -6,18 +6,24 @@
 
 ## Usage
 
-To generate the report run `clockify2cats` with the following arguments:
+First you need to setup your local configuration. Run `clockify2cats init --workspace <WorkspaceID> --user <UserID> --api-key <API-KEY>`. The configuration is stored in `~/.clockify2cats.yaml`.
 
-Usage of clockify2cats:
--  -w, --week week number for report (don't use in combination with start)
--  -s, --start Startdate for report YYYY-MM-DD (don't use in combination with week)
--  -C, --copy Copy report to clipboard
--  -c, --category Category identifyer (default: ID)
--  -t, --text Add Clockify description as text to report
+Then you can use `clockify2cats` to generate a report. Run `clockify2cats generate [flags]`.
+
+Flags:
+```
+      --category string   Category identifyer (default "ID")
+  -C, --copy              Copy report to clipboard
+  -c, --current           Current week
+  -h, --help              help for generate
+  -l, --last              Last week
+  -t, --text              Print with text
+  -w, --week int          Week number
+```
 
 Example: 
 ```
-$ clockify2cats --week 2
+$ clockify2cats generate --current
 
 CATSID-1                    ID      8.06            4.68            1.26            2.34            7.62            0.00            0.00
 CATSID-2                    ID      0.00            0.47            6.02            5.13            0.73            0.00            0.00
@@ -29,7 +35,7 @@ This report is build for the CATS columns:
 - Rec. order
 - Description - empty
 - Text - use flag `-t` to use it
-- Category - default `ID`, can be set with flag `-c`
+- Category - default `ID`, can be set with flag `--category <string>`
 - Monday
 - Tuesday
 - Wensday
@@ -47,13 +53,6 @@ Generate an API for clockify. It can be fount in your profile settings.
 
 Fetch your user id and your default workspace id from the api `curl -H 'X-Api-Key: <API-KEY>' https://api.clockify.me/api/v1/user | jq`.
 
-Set your workspace id, user id and api key and set them as environment variable or create a `.env` file with the following variables:
-
-```
-CLOCKIFY_WORKSPACE_ID=xxxxxxxxxxxxxxxxxxxxxxxx
-CLOCKIFY_USER_ID=xxxxxxxxxxxxxxxxxxxxxxxx
-CLOCKIFY_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
 
 ## Release
 
