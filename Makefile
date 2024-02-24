@@ -4,13 +4,13 @@ run:
 	go run main.go
 
 release_local: 
-	goreleaser release --snapshot --rm-dist
+	goreleaser build --snapshot --clean
 
 release: 
 	echo $(VERSION)
 	git tag -a $(VERSION) -m "Release $(VERSION)"
 	git push origin $(VERSION)
-	goreleaser release --rm-dist
+	goreleaser release --clean
 
 install:
 	go install

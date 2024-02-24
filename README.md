@@ -4,6 +4,17 @@
 
 ![Clockify2Cats usage](./clockify2cats.gif)
 
+## Installation
+
+Download the latest binary for your system from the [GitHub release page](https://github.com/marvincaspar/clockify-cats-reporter/releases/latest/).
+
+```sh
+curl -o clockify2cats.tar.gz -L https://github.com/marvincaspar/clockify-cats-reporter/releases/latest/download/clockify2cats_$(uname -s)_$(uname -m).tar.gz
+tar -xvzf clockify2cats.tar.gz
+sudo mv clockify2cats /usr/local/bin
+rm clockify2cats.tar.gz
+```
+
 ## Usage
 
 First you need to setup your local configuration. Run `clockify2cats init --workspace <WorkspaceID> --user <UserID> --api-key <API-KEY>`. The configuration is stored in `~/.clockify2cats.yaml`.

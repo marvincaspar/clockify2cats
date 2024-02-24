@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.0] - 2024-02-24
 
-### Added
+### Changed
 
+- Rebuild cli behavior to include specific subcommands
 - Use [cobra](https://github.com/spf13/cobra) for the cli commands
 - Use [viper](https://github.com/spf13/viper) for the configuration
