@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/atotto/clipboard"
-	"github.com/marvincaspar/clockify2cats/report"
+	"github.com/marvincaspar/clockify2cats/internal/report"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -37,6 +37,10 @@ var generateCmd = &cobra.Command{
 			week = currentWeek
 		} else if flagLastWeek {
 			week = currentWeek - 1
+
+			if week < 1 {
+				year = year - 1
+			}
 		} else if flagWeek > 0 {
 			weekInput := flagWeek
 
@@ -51,10 +55,17 @@ var generateCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		report := report.Generate(
-			workspaceID,
-			userID,
-			apiKey,
+		clockifyRepository := report.Repository{
+			WorkspaceID: workspaceID,
+			UserID:      userID,
+			ApiKey:      apiKey,
+		}
+
+		reporter := report.Reporter{
+			Repository: clockifyRepository,
+		}
+
+		report := reporter.Generate(
 			year,
 			week,
 			flagCategory,

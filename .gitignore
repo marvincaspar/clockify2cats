@@ -3,3 +3,6 @@
 .vscode
 dist/
 cats_report_*.csv
+
+*.out
+covprofile

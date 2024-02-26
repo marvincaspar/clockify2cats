@@ -21,3 +21,7 @@ clean:
 
 fmt:
 	go fmt $$(go list ./... | grep -v /vendor/)
+
+test:
+	go test ./... -v -coverprofile=c.out
+	go tool cover -html="c.out"
