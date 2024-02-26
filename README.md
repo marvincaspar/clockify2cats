@@ -1,3 +1,6 @@
+[![CI](https://github.com/marvincaspar/clockify-cats-reporter/actions/workflows/ci.yml/badge.svg)](https://github.com/marvincaspar/clockify-cats-reporter/actions/workflows/ci.yml)
+[![Coverage Status](https://coveralls.io/repos/github/marvincaspar/clockify-cats-reporter/badge.svg)](https://coveralls.io/github/marvincaspar/clockify-cats-reporter)
+
 # Clockify2Cats
 
 `clockify2cats` is a tool which exports your time from clockify and prints a report into a format that you can capy and paste into SAP CATS (Cross-Application Time Sheet).
