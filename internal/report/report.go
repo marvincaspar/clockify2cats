@@ -16,11 +16,15 @@ var (
 	category   string
 )
 
+type ReporterInterface interface {
+	Generate(year int, week int, category string, withText bool) string
+}
+
 type Reporter struct {
 	Repository RepositoryInterface
 }
 
-func (r Reporter) Generate(year int, week int, category string, withText bool) string {
+func (r *Reporter) Generate(year int, week int, category string, withText bool) string {
 	start := getFirstDayOfWeek(year, week).Format(timeFormat)
 
 	timeEntries := r.Repository.FetchClockifyData(start)

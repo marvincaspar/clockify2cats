@@ -1,7 +1,10 @@
 .env
 
+.idea
 .vscode
-dist/
+
+/dist
+/vendor
 
 *.out
 covprofile

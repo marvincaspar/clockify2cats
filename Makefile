@@ -23,5 +23,5 @@ fmt:
 	go fmt $$(go list ./... | grep -v /vendor/)
 
 test:
-	go test ./... -v -coverprofile=c.out
-	go tool cover -html="c.out"
+	go test ./... -v -coverprofile=covprofile
+	go tool cover -html="covprofile"
