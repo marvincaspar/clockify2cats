@@ -1,5 +1,10 @@
 .env
 
+.idea
 .vscode
-dist/
-cats_report_*.csv
+
+/dist
+/vendor
+
+*.out
+covprofile

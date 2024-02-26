@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/atotto/clipboard"
-	"github.com/marvincaspar/clockify2cats/report"
+	"github.com/marvincaspar/clockify2cats/internal/report"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -20,56 +20,72 @@ var (
 	flagWithText        bool
 )
 
-var generateCmd = &cobra.Command{
-	Use:   "generate",
-	Short: "Generate report for a specific week",
-	Long:  `Generate a report from your clockify data for a specific week and print it to stdout. You can also copy it to the clipboard.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		workspaceID := viper.GetString("workspace-id")
-		userID := viper.GetString("user-id")
-		apiKey := viper.GetString("api-key")
+func newGenerateCmd(t time.Time, reporter report.ReporterInterface) *cobra.Command {
+	return &cobra.Command{
+		Use:   "generate",
+		Short: "Generate report for a specific week",
+		Long:  `Generate a report from your clockify data for a specific week and print it to stdout. You can also copy it to the clipboard.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			var week int
+			year, currentWeek := t.ISOWeek()
 
-		var week int
-		t := time.Now()
-		year, currentWeek := t.ISOWeek()
+			if flagCurrentWeek {
+				week = currentWeek
+			} else if flagLastWeek {
+				if currentWeek == 1 {
+					year, currentWeek = t.Add(-time.Hour * 24 * 7).ISOWeek()
 
-		if flagCurrentWeek {
-			week = currentWeek
-		} else if flagLastWeek {
-			week = currentWeek - 1
-		} else if flagWeek > 0 {
-			weekInput := flagWeek
+					week = currentWeek
+				}
+			} else if flagWeek > 0 {
+				weekInput := flagWeek
 
-			if weekInput > currentWeek {
-				year = year - 1
+				if weekInput > currentWeek {
+					year = year - 1
+				}
+
+				week = weekInput
+
+			} else {
+				fmt.Fprintf(os.Stderr, "Error: no week specified")
+				os.Exit(1)
 			}
 
-			week = weekInput
+			report := reporter.Generate(
+				year,
+				week,
+				flagCategory,
+				flagWithText,
+			)
 
-		} else {
-			fmt.Fprintf(os.Stderr, "Error: no week specified")
-			os.Exit(1)
-		}
+			fmt.Println(report)
 
-		report := report.Generate(
-			workspaceID,
-			userID,
-			apiKey,
-			year,
-			week,
-			flagCategory,
-			flagWithText,
-		)
-
-		fmt.Println(report)
-
-		if flagCopyToClipboard {
-			clipboard.WriteAll(report)
-		}
-	},
+			if flagCopyToClipboard {
+				clipboard.WriteAll(report)
+			}
+		},
+	}
 }
 
 func init() {
+	initConfig()
+	workspaceID := viper.GetString("workspace-id")
+	userID := viper.GetString("user-id")
+	apiKey := viper.GetString("api-key")
+
+	clockifyRepository := report.Repository{
+		WorkspaceID: workspaceID,
+		UserID:      userID,
+		ApiKey:      apiKey,
+	}
+
+	reporter := report.Reporter{
+		Repository: clockifyRepository,
+	}
+
+	t := time.Now()
+	generateCmd := newGenerateCmd(t, &reporter)
+
 	rootCmd.AddCommand(generateCmd)
 
 	// Here you will define your flags and configuration settings.
