@@ -32,9 +32,6 @@ jobs:
           git tag --annotate "${VERSION}" --message='Created by GitHub Action'
           git push --tags
           echo "is_new_tag=1" >> $GITHUB_OUTPUT
-      - name: Debug
-        run: |
-          echo ${{ steps.create_tag.outputs.is_new_tag }}
       - name: Set up Go
         if: ${{ steps.create_tag.outputs.is_new_tag == 1 }}
         uses: actions/setup-go@v5
