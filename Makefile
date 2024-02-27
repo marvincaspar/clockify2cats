@@ -24,4 +24,9 @@ fmt:
 
 test:
 	go test ./... -v -coverprofile=covprofile
+	
+	# ignore files from coverage, e.g. repository to fetch remote data
+	grep -v -E -f .covignore covprofile > covprofile.filtered
+	mv covprofile.filtered covprofile
+
 	go tool cover -html="covprofile"

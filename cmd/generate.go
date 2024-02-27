@@ -32,9 +32,11 @@ func newGenerateCmd(t time.Time, reporter report.ReporterInterface) *cobra.Comma
 			if flagCurrentWeek {
 				week = currentWeek
 			} else if flagLastWeek {
+				week = currentWeek - 1
+
+				// if the current week is the first week of the year we need to go back to the previous year
 				if currentWeek == 1 {
 					year, currentWeek = t.Add(-time.Hour * 24 * 7).ISOWeek()
-
 					week = currentWeek
 				}
 			} else if flagWeek > 0 {

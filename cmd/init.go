@@ -11,17 +11,20 @@ var (
 	clockifyApiKey      string
 )
 
-var initCmd = &cobra.Command{
-	Use:   "init",
-	Short: "Initialize clockify2cats config",
-	Long:  `Initialize clockify2cats config by providing workspace ID, user ID and api key.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		viper.WriteConfig()
-		viper.SafeWriteConfig()
-	},
+func newInitCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "init",
+		Short: "Initialize clockify2cats config",
+		Long:  `Initialize clockify2cats config by providing workspace ID, user ID and api key.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			viper.WriteConfig()
+			viper.SafeWriteConfig()
+		},
+	}
 }
 
 func init() {
+	initCmd := newInitCmd()
 	rootCmd.AddCommand(initCmd)
 
 	// Here you will define your flags and configuration settings.
