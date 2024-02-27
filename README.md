@@ -1,5 +1,6 @@
 [![CI](https://github.com/marvincaspar/clockify-cats-reporter/actions/workflows/ci.yml/badge.svg)](https://github.com/marvincaspar/clockify-cats-reporter/actions/workflows/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/marvincaspar/clockify2cats/badge.svg?branch=main)](https://coveralls.io/github/marvincaspar/clockify2cats?branch=main)
+[![Go Report Card](https://goreportcard.com/badge/github.com/marvincaspar/clockify2cats)](https://goreportcard.com/report/github.com/marvincaspar/clockify2cats)
 
 # Clockify2Cats
 
