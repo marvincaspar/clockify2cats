@@ -114,7 +114,7 @@ func (r Reporter) generateCatsReportData(catsEntries []CatsEntity, category stri
 
 		// we have to sort the dates because looping over a map is not guaranteed to be in order
 		dateKeys := make([]string, 0)
-		for k, _ := range catsEntry.Durations {
+		for k := range catsEntry.Durations {
 			dateKeys = append(dateKeys, k)
 		}
 		sort.Strings(dateKeys)
