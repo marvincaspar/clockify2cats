@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: 
+      - completed
+
+jobs:
+  release:
+    name: Release new version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Create tag
+        id: create_tag
+        run: |
+          VERSION=$(cat version.txt)
+
+          if [ -n $(git tag --list "${VERSION}") ]; then
+              echo "Tag ${VERSION} already exists."
+              echo "is_new_tag='true'" >> $GITHUB_OUTPUT
+              exit 0
+          fi
+
+          git config --global user.name 'GitHub Action'
+          git config --global user.email 'github@caspar.dev'
+          git tag --annotate "${VERSION}" --message='Created by GitHub Action'
+          git push --tags
+      - name: Set up Go
+        if: steps.create_tag.outputs.is_new_tag == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - name: Install dependencies
+        if: steps.create_tag.outputs.is_new_tag == 'true'
+        run: |
+          go mod download
+      - name: Run GoReleaser
+        if: steps.create_tag.outputs.is_new_tag == 'true'
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          # either 'goreleaser' (default) or 'goreleaser-pro'
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
