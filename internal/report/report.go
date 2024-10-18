@@ -21,10 +21,11 @@ type ReporterInterface interface {
 }
 
 type Reporter struct {
-	Repository RepositoryInterface
+	Repository           RepositoryInterface
+	DescriptionDelimiter string
 }
 
-func (r *Reporter) Generate(year int, week int, category string, withText bool) string {
+func (r Reporter) Generate(year int, week int, category string, withText bool) string {
 	start := getFirstDayOfWeek(year, week).Format(timeFormat)
 
 	timeEntries := r.Repository.FetchClockifyData(start)
@@ -44,44 +45,50 @@ func (r Reporter) convertTimeEntries(start string, timeEntries []ClockifyTimeEnt
 		cleanDuration := strings.ToLower(strings.Replace(timeEntry.TimeInterval.Duration, "PT", "", 1))
 		duration, _ := time.ParseDuration(cleanDuration)
 
-		catsID := r.getCatsID(timeEntry)
-		text := ""
+		catsIDs := r.getCatsIDs(timeEntry)
+		text := []string{"", "", ""}
 		if withText {
-			text = timeEntry.Description
+			text = r.splitDescription(timeEntry.Description)
 		}
 
-		index := r.findCatsEntryID(catsEntries, catsID, text)
+		for _, catsID := range catsIDs {
+			durationShared := duration / time.Duration(len(catsIDs))
+			trimmedCatsID := strings.TrimSpace(catsID)
+			index := r.findCatsEntryID(catsEntries, trimmedCatsID, text[0], text[1], text[2])
 
-		if index == -1 {
-			catsEntries = append(catsEntries, CatsEntity{
-				CatsID: catsID,
-				Text:   text,
-				Durations: map[string]time.Duration{
-					startToDate.AddDate(0, 0, 0).Format("2006-01-02"): time.Duration(0), // Monday
-					startToDate.AddDate(0, 0, 1).Format("2006-01-02"): time.Duration(0), // Tuesday
-					startToDate.AddDate(0, 0, 2).Format("2006-01-02"): time.Duration(0), // Wednesday
-					startToDate.AddDate(0, 0, 3).Format("2006-01-02"): time.Duration(0), // Thursday
-					startToDate.AddDate(0, 0, 4).Format("2006-01-02"): time.Duration(0), // Friday
-					startToDate.AddDate(0, 0, 5).Format("2006-01-02"): time.Duration(0), // Saturday
-					startToDate.AddDate(0, 0, 6).Format("2006-01-02"): time.Duration(0), // Sunday
+			if index == -1 {
+				catsEntries = append(catsEntries, CatsEntity{
+					CatsID:       trimmedCatsID,
+					Text:         text[0],
+					Text2:        text[1],
+					TextExternal: text[2],
+					Durations: map[string]time.Duration{
+						startToDate.AddDate(0, 0, 0).Format("2006-01-02"): time.Duration(0), // Monday
+						startToDate.AddDate(0, 0, 1).Format("2006-01-02"): time.Duration(0), // Tuesday
+						startToDate.AddDate(0, 0, 2).Format("2006-01-02"): time.Duration(0), // Wednesday
+						startToDate.AddDate(0, 0, 3).Format("2006-01-02"): time.Duration(0), // Thursday
+						startToDate.AddDate(0, 0, 4).Format("2006-01-02"): time.Duration(0), // Friday
+						startToDate.AddDate(0, 0, 5).Format("2006-01-02"): time.Duration(0), // Saturday
+						startToDate.AddDate(0, 0, 6).Format("2006-01-02"): time.Duration(0), // Sunday
+					},
 				},
-			},
-			)
-			index = len(catsEntries) - 1
+				)
+				index = len(catsEntries) - 1
+			}
+
+			currentTime := catsEntries[index].Durations[startDate.Format("2006-01-02")]
+			currentTime += durationShared
+
+			catsEntries[index].Durations[startDate.Format("2006-01-02")] = currentTime
 		}
-
-		currentTime := catsEntries[index].Durations[startDate.Format("2006-01-02")]
-		currentTime += duration
-
-		catsEntries[index].Durations[startDate.Format("2006-01-02")] = currentTime
 	}
 
 	return catsEntries
 }
 
-func (r Reporter) findCatsEntryID(catsEntries []CatsEntity, catsID string, text string) int {
+func (r Reporter) findCatsEntryID(catsEntries []CatsEntity, catsID string, text string, text2 string, textExternal string) int {
 	for i, catsEntry := range catsEntries {
-		if catsEntry.CatsID == catsID && catsEntry.Text == text {
+		if catsEntry.CatsID == catsID && catsEntry.Text == text && catsEntry.Text2 == text2 && catsEntry.TextExternal == textExternal {
 			return i
 		}
 	}
@@ -89,25 +96,44 @@ func (r Reporter) findCatsEntryID(catsEntries []CatsEntity, catsID string, text 
 	return -1
 }
 
-func (r Reporter) getCatsID(t ClockifyTimeEntry) string {
+func (r Reporter) getCatsIDs(t ClockifyTimeEntry) []string {
 	rg, _ := regexp.Compile("\\((.*)\\)")
 
-	// Get CATS ID from project name
+	// Get CATS IDs from project name
 	if t.Project.Name != "" {
 		match := rg.FindAllStringSubmatch(t.Project.Name, -1)
 		if len(match) > 0 {
-			return match[0][1]
+			return strings.Split(match[0][1], ",")
 		}
 	}
 
-	return "-"
+	return []string{"-"}
+}
+
+func (r Reporter) splitDescription(description string) []string {
+	parts := strings.Split(description, r.DescriptionDelimiter)
+	if len(parts) >= 3 {
+		return []string{strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]), strings.TrimSpace(parts[2])}
+	}
+
+	if len(parts) == 2 {
+		return []string{strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]), ""}
+	}
+
+	if len(parts) == 1 {
+		return []string{"", strings.TrimSpace(parts[0]), ""}
+	}
+
+	return []string{"", description, ""}
 }
 
 func (r Reporter) generateCatsReportData(catsEntries []CatsEntity, category string, withText bool) string {
 	var output string
 	p := message.NewPrinter(language.Make("de-DE"))
-	catsMeta := "%s\t\t%s\t%s\t"
+	catsMeta := "%s\t\t%s\t%s\t%s\t%s\t" // Rec. order, Description (empty), Text, Text 2, Text External, Category
 	text := ""
+	text2 := ""
+	textExternal := ""
 
 	for _, catsEntry := range catsEntries {
 		var values []interface{}
@@ -124,9 +150,11 @@ func (r Reporter) generateCatsReportData(catsEntries []CatsEntity, category stri
 		}
 		if withText {
 			text = catsEntry.Text
+			text2 = catsEntry.Text2
+			textExternal = catsEntry.TextExternal
 		}
 
-		catsStart := fmt.Sprintf(catsMeta, catsEntry.CatsID, text, category)
+		catsStart := fmt.Sprintf(catsMeta, catsEntry.CatsID, text, text2, textExternal, category)
 		catsStart += strings.Repeat("%s\t\t", len(values))
 
 		output += fmt.Sprintf(catsStart, values...) + "\n"

@@ -21,11 +21,12 @@ rm clockify2cats.tar.gz
 
 ## Usage
 
-First you need to setup your local configuration. Run `clockify2cats init --workspace <WorkspaceID> --user <UserID> --api-key <API-KEY>`. The configuration is stored in `~/.clockify2cats.yaml`.
+First you need to set up your local configuration. Run `clockify2cats init --workspace <WorkspaceID> --user <UserID> --api-key <API-KEY> --description-delimiter "#"`. The configuration is stored in `~/.clockify2cats.yaml`.
 
 Then you can use `clockify2cats` to generate a report. Run `clockify2cats generate [flags]`.
 
 Flags:
+
 ```
       --category string   Category identifyer (default "ID")
   -C, --copy              Copy report to clipboard
@@ -36,7 +37,8 @@ Flags:
   -w, --week int          Week number
 ```
 
-Example: 
+Example:
+
 ```
 $ clockify2cats generate --current
 
@@ -50,24 +52,35 @@ This report is build for the CATS columns:
 - Rec. order
 - Description - empty
 - Text - use flag `-t` to use it
+- Text 2 - use flag `-t` to use it
+- Text External - use flag `-t` to use it
 - Category - default `ID`, can be set with flag `--category <string>`
 - Monday
 - Tuesday
-- Wensday
+- Wednesday
 - Thursday
 - Friday
 - Saturday
 - Sunday
 
-
 ## Clockify setup
 
-Create projects and name it like `<ProjectName> (<CatsID>)`. Track your time for the projects. Use the clockify description field to add additional information for the CATS text field.
+Create projects and name it like `<ProjectName> (<CatsID>)`. Track your time for the projects. Use the clockify description field to add additional information for the CATS text fields. You can also use a
+shared
+project to split time between multiple CATS projects. The project name should be `<SharedProjectName> (<CatsID1>,<CatsID2>,...)`. The clockify description is used for the CATS text fields and is split by a
+defined
+delimiter, default is `#`. The rules for the split are:
 
-Generate an API for clockify. It can be fount in your profile settings.
+- no delimiter found: the whole description is used for the CATS text 2 field
+- one delimiter found: the description before the delimiter is used for the CATS text field, the description after the delimiter is used for the CATS text 2 field
+- two delimiters found: the description before the first delimiter is used for the CATS text field, the description between the first and the second delimiter is used for the CATS text 2 field, the description
+  after the second delimiter is used for the CATS text external field
 
-Fetch your user id and your default workspace id from the api `curl -H 'X-Api-Key: <API-KEY>' https://api.clockify.me/api/v1/user | jq`.
+This is only relevant if you use the `-t` or `--text` flag.
 
+Generate an API for clockify. It can be found in your profile settings.
+
+Fetch your user id and your default workspace id from the api `curl -H 'X-Api-Key: <API-KEY>' https://api.clockify.me/api/v1/user | jq ". | {id, defaultWorkspace}"`.
 
 ## Release
 
@@ -77,5 +90,5 @@ goreleaser init
 ```
 
 Update the version in `version.txt` and run `make release`.
-This will create a new git tag, build all binaries and publish it to github.
+This will create a new git tag, build all binaries and publish it to GitHub.
 

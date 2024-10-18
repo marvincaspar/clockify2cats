@@ -6,9 +6,10 @@ import (
 )
 
 var (
-	clockifyWorkspaceID string
-	clockifyUserID      string
-	clockifyApiKey      string
+	clockifyWorkspaceID          string
+	clockifyUserID               string
+	clockifyApiKey               string
+	clockifyDescriptionDelimiter string
 )
 
 func newInitCmd() *cobra.Command {
@@ -41,9 +42,12 @@ func init() {
 	initCmd.PersistentFlags().StringVar(&clockifyApiKey, "api-key", "", "Clockify api key")
 	initCmd.MarkPersistentFlagRequired("api-key")
 
+	initCmd.PersistentFlags().StringVar(&clockifyDescriptionDelimiter, "description-delimiter", "#", "Clockify description delimiter to split description into text, text 2 and text external")
+
 	viper.BindPFlag("workspace-id", initCmd.PersistentFlags().Lookup("workspace"))
 	viper.BindPFlag("user-id", initCmd.PersistentFlags().Lookup("user"))
 	viper.BindPFlag("api-key", initCmd.PersistentFlags().Lookup("api-key"))
+	viper.BindPFlag("description-delimiter", initCmd.PersistentFlags().Lookup("description-delimiter"))
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:

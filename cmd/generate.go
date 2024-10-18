@@ -74,6 +74,7 @@ func init() {
 	workspaceID := viper.GetString("workspace-id")
 	userID := viper.GetString("user-id")
 	apiKey := viper.GetString("api-key")
+	descriptionDelimiter := viper.GetString("description-delimiter")
 
 	clockifyRepository := report.Repository{
 		WorkspaceID: workspaceID,
@@ -82,7 +83,8 @@ func init() {
 	}
 
 	reporter := report.Reporter{
-		Repository: clockifyRepository,
+		Repository:           clockifyRepository,
+		DescriptionDelimiter: descriptionDelimiter,
 	}
 
 	t := time.Now()

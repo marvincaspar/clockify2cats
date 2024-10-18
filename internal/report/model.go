@@ -15,7 +15,9 @@ type ClockifyTimeEntry struct {
 }
 
 type CatsEntity struct {
-	CatsID    string
-	Text      string
-	Durations map[string]time.Duration
+	CatsID       string
+	Text         string
+	Text2        string
+	TextExternal string
+	Durations    map[string]time.Duration
 }

@@ -6,11 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [3.0.0] - 2024-10-18
+
+### Added
+
+- Accept comma separated list of CATS ids to split tracked times to multiple projects
+- Add description delimiter config param to split clockify description for text, text 2 and text external columns, default is '#'
+
 ## [2.1.0] - 2024-02-26
 
 ### Added
 
-- Github actions for CI
+- GitHub actions for CI
  
 ### Changed
 
