@@ -8,7 +8,7 @@ release_local:
 
 release: 
 	echo $(VERSION)
-	git tag -a $(VERSION) -m "Release $(VERSION)"
+	git tag -s -a $(VERSION) -m "Release $(VERSION)"
 	git push origin $(VERSION)
 	goreleaser release --clean
 
