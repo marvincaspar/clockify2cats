@@ -23,7 +23,7 @@ func (r Repository) FetchClockifyData(start string) []ClockifyTimeEntry {
 	startDate, _ := time.Parse(timeFormat, start)
 	endDate := startDate.AddDate(0, 0, 7).Add(-time.Second)
 
-	url := fmt.Sprintf("https://api.clockify.me/api/v1/workspaces/%s/user/%s/time-entries?hydrated=1&start=%s&end=%s",
+	url := fmt.Sprintf("https://api.clockify.me/api/v1/workspaces/%s/user/%s/time-entries?hydrated=1&start=%s&end=%s&page-size=1000",
 		r.WorkspaceID, r.UserID, startDate.Format(timeFormat), endDate.Format(timeFormat))
 
 	client := &http.Client{}
