@@ -82,6 +82,30 @@ Generate an API for clockify. It can be found in your profile settings.
 
 Fetch your user id and your default workspace id from the api `curl -H 'X-Api-Key: <API-KEY>' https://api.clockify.me/api/v1/user | jq ". | {id, defaultWorkspace}"`.
 
+### Usage of the Asterisk (`*`) in the Description
+When an asterisk `*` is used in the description instead of a specific CATS ID, it indicates that the recorded time will be evenly distributed across all billable time entries. This is particularly useful when a task is defined as a Shared task.
+
+#### Example
+Project name in Clockify: `SharedProject (*)`
+
+#### Description:
+Task description # Additional details #
+
+#### Behavior
+`*` in the project name signifies that the recorded time will be evenly distributed across the specified other time entries which are marked as "billable=true".
+
+#### Result
+If, for example, 9 hours are recorded for the project mentioned above, the time will be distributed as follows:
+
+| CATS ID              | Hours |
+|----------------------|-------|
+| CATSID1              | 3.00  |
+| CATSID2              | 3.00  |
+| CATSID3              | 3.00  |
+| CATSID4 NOT BILLABLE | 0.00  |
+
+The fields Text, Text 2, and Text External will be populated according to the description.
+
 ## Release
 
 ```sh
