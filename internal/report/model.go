@@ -12,6 +12,7 @@ type ClockifyTimeEntry struct {
 	Project struct {
 		Name string `json:"name"`
 	} `json:"project"`
+	Billable bool `json:"billable"`
 }
 
 type CatsEntity struct {

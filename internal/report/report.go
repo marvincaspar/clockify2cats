@@ -39,6 +39,9 @@ func (r Reporter) Generate(year int, week int, category string, withText bool) s
 func (r Reporter) convertTimeEntries(start string, timeEntries []ClockifyTimeEntry, withText bool) []CatsEntity {
 	startToDate, _ := time.Parse(timeFormat, start)
 	catsEntries := []CatsEntity{}
+	nonBillableCatsEntries := []CatsEntity{}
+	sharedEntries := []ClockifyTimeEntry{}
+	billableSum := 0.0
 
 	for _, timeEntry := range timeEntries {
 		startDate, _ := time.Parse(timeFormat, timeEntry.TimeInterval.Start)
@@ -46,43 +49,80 @@ func (r Reporter) convertTimeEntries(start string, timeEntries []ClockifyTimeEnt
 		duration, _ := time.ParseDuration(cleanDuration)
 
 		catsIDs := r.getCatsIDs(timeEntry)
-		text := []string{"", "", ""}
-		if withText {
-			text = r.splitDescription(timeEntry.Description)
-		}
 
-		for _, catsID := range catsIDs {
-			durationShared := duration / time.Duration(len(catsIDs))
-			trimmedCatsID := strings.TrimSpace(catsID)
-			index := r.findCatsEntryID(catsEntries, trimmedCatsID, text[0], text[1], text[2])
-
-			if index == -1 {
-				catsEntries = append(catsEntries, CatsEntity{
-					CatsID:       trimmedCatsID,
-					Text:         text[0],
-					Text2:        text[1],
-					TextExternal: text[2],
-					Durations: map[string]time.Duration{
-						startToDate.AddDate(0, 0, 0).Format("2006-01-02"): time.Duration(0), // Monday
-						startToDate.AddDate(0, 0, 1).Format("2006-01-02"): time.Duration(0), // Tuesday
-						startToDate.AddDate(0, 0, 2).Format("2006-01-02"): time.Duration(0), // Wednesday
-						startToDate.AddDate(0, 0, 3).Format("2006-01-02"): time.Duration(0), // Thursday
-						startToDate.AddDate(0, 0, 4).Format("2006-01-02"): time.Duration(0), // Friday
-						startToDate.AddDate(0, 0, 5).Format("2006-01-02"): time.Duration(0), // Saturday
-						startToDate.AddDate(0, 0, 6).Format("2006-01-02"): time.Duration(0), // Sunday
-					},
-				},
-				)
-				index = len(catsEntries) - 1
+		// Split entries into shared, billable and non-billable entries
+		if catsIDs[0] == "*" {
+			sharedEntries = append(sharedEntries, timeEntry)
+		} else {
+			if timeEntry.Billable {
+				billableSum += duration.Hours()
+				catsEntries = r.generateCATsEntriesFromTimeEntry(withText, timeEntry, catsIDs, duration, catsEntries, startToDate, startDate)
+			} else {
+				nonBillableCatsEntries = r.generateCATsEntriesFromTimeEntry(withText, timeEntry, catsIDs, duration, nonBillableCatsEntries, startToDate, startDate)
 			}
-
-			currentTime := catsEntries[index].Durations[startDate.Format("2006-01-02")]
-			currentTime += durationShared
-
-			catsEntries[index].Durations[startDate.Format("2006-01-02")] = currentTime
 		}
 	}
 
+	if billableSum == 0 {
+		//TODO Fehler werfen
+	}
+
+	r.distributeSharedEntriesToBillableEntries(sharedEntries, catsEntries, billableSum)
+
+	return append(catsEntries, nonBillableCatsEntries...)
+}
+
+func (r Reporter) distributeSharedEntriesToBillableEntries(sharedEntries []ClockifyTimeEntry, catsEntries []CatsEntity, billableSum float64) {
+	if len(sharedEntries) > 0 {
+		for _, sharedTimeEntry := range sharedEntries {
+			cleanDuration := strings.ToLower(strings.Replace(sharedTimeEntry.TimeInterval.Duration, "PT", "", 1))
+			sharedDuration, _ := time.ParseDuration(cleanDuration)
+			for _, catsEntry := range catsEntries {
+				for key, duration := range catsEntry.Durations {
+					sharedDurationForEntry := (duration.Hours() / billableSum) * sharedDuration.Hours()
+					catsEntry.Durations[key] += time.Duration(sharedDurationForEntry * float64(time.Hour))
+				}
+			}
+		}
+	}
+}
+
+func (r Reporter) generateCATsEntriesFromTimeEntry(withText bool, timeEntry ClockifyTimeEntry, catsIDs []string, duration time.Duration, catsEntries []CatsEntity, startToDate time.Time, startDate time.Time) []CatsEntity {
+	text := []string{"", "", ""}
+	if withText {
+		text = r.splitDescription(timeEntry.Description)
+	}
+
+	for _, catsID := range catsIDs {
+		durationShared := duration / time.Duration(len(catsIDs))
+		trimmedCatsID := strings.TrimSpace(catsID)
+		index := r.findCatsEntryID(catsEntries, trimmedCatsID, text[0], text[1], text[2])
+
+		if index == -1 {
+			catsEntries = append(catsEntries, CatsEntity{
+				CatsID:       trimmedCatsID,
+				Text:         text[0],
+				Text2:        text[1],
+				TextExternal: text[2],
+				Durations: map[string]time.Duration{
+					startToDate.AddDate(0, 0, 0).Format("2006-01-02"): time.Duration(0), // Monday
+					startToDate.AddDate(0, 0, 1).Format("2006-01-02"): time.Duration(0), // Tuesday
+					startToDate.AddDate(0, 0, 2).Format("2006-01-02"): time.Duration(0), // Wednesday
+					startToDate.AddDate(0, 0, 3).Format("2006-01-02"): time.Duration(0), // Thursday
+					startToDate.AddDate(0, 0, 4).Format("2006-01-02"): time.Duration(0), // Friday
+					startToDate.AddDate(0, 0, 5).Format("2006-01-02"): time.Duration(0), // Saturday
+					startToDate.AddDate(0, 0, 6).Format("2006-01-02"): time.Duration(0), // Sunday
+				},
+			},
+			)
+			index = len(catsEntries) - 1
+		}
+
+		currentTime := catsEntries[index].Durations[startDate.Format("2006-01-02")]
+		currentTime += durationShared
+
+		catsEntries[index].Durations[startDate.Format("2006-01-02")] = currentTime
+	}
 	return catsEntries
 }
 

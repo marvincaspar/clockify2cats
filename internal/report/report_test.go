@@ -301,6 +301,109 @@ func TestReporter_Generate_withDescriptionBlockTimeEntry(t *testing.T) {
 	assert.Equal(t, "1,00", parts[6])
 }
 
+func TestReporter_ShareBillableEntries(t *testing.T) {
+	reporter := Reporter{
+		DescriptionDelimiter: "#",
+		Repository: repositoryMock{
+			data: []ClockifyTimeEntry{
+				{
+					Description: "Shared Task",
+					TimeInterval: struct {
+						Start    string `json:"start"`
+						End      string `json:"end"`
+						Duration string `json:"duration"`
+					}{
+						Start:    "2022-01-01T07:00:00Z",
+						End:      "2022-01-01T08:00:00Z",
+						Duration: "PT1H",
+					},
+					Project: struct {
+						Name string `json:"name"`
+					}{
+						Name: "Project name (*)",
+					},
+					Billable: false,
+				},
+				{
+					Description: "Billable Task",
+					TimeInterval: struct {
+						Start    string `json:"start"`
+						End      string `json:"end"`
+						Duration string `json:"duration"`
+					}{
+						Start:    "2022-01-01T09:00:00Z",
+						End:      "2022-01-01T10:00:00Z",
+						Duration: "PT1H",
+					},
+					Project: struct {
+						Name string `json:"name"`
+					}{
+						Name: "Project name (123)",
+					},
+					Billable: true,
+				},
+				{
+					Description: "Third Billable Task",
+					TimeInterval: struct {
+						Start    string `json:"start"`
+						End      string `json:"end"`
+						Duration string `json:"duration"`
+					}{
+						Start:    "2022-01-01T11:00:00Z",
+						End:      "2022-01-01T12:00:00Z",
+						Duration: "PT1H",
+					},
+					Project: struct {
+						Name string `json:"name"`
+					}{
+						Name: "Project name (789)",
+					},
+					Billable: true,
+				},
+				{
+					Description: "NOT Billable Task",
+					TimeInterval: struct {
+						Start    string `json:"start"`
+						End      string `json:"end"`
+						Duration string `json:"duration"`
+					}{
+						Start:    "2022-01-01T13:00:00Z",
+						End:      "2022-01-01T14:00:00Z",
+						Duration: "PT1H",
+					},
+					Project: struct {
+						Name string `json:"name"`
+					}{
+						Name: "Project name (000)",
+					},
+					Billable: false,
+				},
+			},
+		},
+	}
+
+	report := reporter.Generate(2022, 1, "Category", true)
+
+	assert.NotEmpty(t, report, "Report should not be empty")
+
+	entities := strings.Split(report, "\n")
+	entities = entities[:len(entities)-1]
+	assert.Equal(t, 3, len(entities), "Time entries should contain 3 lines")
+
+	// Check shared entry distribution
+	entry123 := strings.Split(entities[0], "\t")
+	assert.Equal(t, "123", entry123[0])
+	assert.Equal(t, "1,50", entry123[6]) // 1 hour + 0.5 hours shared
+
+	entry789 := strings.Split(entities[1], "\t")
+	assert.Equal(t, "789", entry789[0])
+	assert.Equal(t, "1,50", entry789[6]) // 1 hour + 0.5 hours shared
+
+	entry000 := strings.Split(entities[2], "\t")
+	assert.Equal(t, "000", entry000[0])
+	assert.Equal(t, "1,00", entry000[6]) // 1 hour without shared hours because not billable
+}
+
 type repositoryMock struct {
 	data []ClockifyTimeEntry
 }
