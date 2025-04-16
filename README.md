@@ -92,7 +92,7 @@ Project name in Clockify: `SharedProject (*)`
 Task description # Additional details #
 
 #### Behavior
-The asterisk (*) in the project name signifies that the recorded time will be evenly distributed across the specified other time entries which are marked as "billable=true".
+`*` in the project name signifies that the recorded time will be evenly distributed across the specified other time entries which are marked as "billable=true".
 
 #### Result
 If, for example, 9 hours are recorded for the project mentioned above, the time will be distributed as follows:
