@@ -404,6 +404,74 @@ func TestReporter_ShareBillableEntries(t *testing.T) {
 	assert.Equal(t, "1,00", entry000[6]) // 1 hour without shared hours because not billable
 }
 
+func TestReporter_ErrorOnShareBillableEntriesWhenNoBillableEntryIsGiven(t *testing.T) {
+	reporter := Reporter{
+		DescriptionDelimiter: "#",
+		Repository: repositoryMock{
+			data: []ClockifyTimeEntry{
+				{
+					Description: "Shared Task",
+					TimeInterval: struct {
+						Start    string `json:"start"`
+						End      string `json:"end"`
+						Duration string `json:"duration"`
+					}{
+						Start:    "2022-01-01T07:00:00Z",
+						End:      "2022-01-01T08:00:00Z",
+						Duration: "PT1H",
+					},
+					Project: struct {
+						Name string `json:"name"`
+					}{
+						Name: "Project name (*)",
+					},
+					Billable: false,
+				},
+				{
+					Description: "NOT Billable Task 1",
+					TimeInterval: struct {
+						Start    string `json:"start"`
+						End      string `json:"end"`
+						Duration string `json:"duration"`
+					}{
+						Start:    "2022-01-01T11:00:00Z",
+						End:      "2022-01-01T12:00:00Z",
+						Duration: "PT1H",
+					},
+					Project: struct {
+						Name string `json:"name"`
+					}{
+						Name: "Project name (123)",
+					},
+					Billable: false,
+				},
+				{
+					Description: "NOT Billable Task 2",
+					TimeInterval: struct {
+						Start    string `json:"start"`
+						End      string `json:"end"`
+						Duration string `json:"duration"`
+					}{
+						Start:    "2022-01-01T13:00:00Z",
+						End:      "2022-01-01T14:00:00Z",
+						Duration: "PT1H",
+					},
+					Project: struct {
+						Name string `json:"name"`
+					}{
+						Name: "Project name (000)",
+					},
+					Billable: false,
+				},
+			},
+		},
+	}
+
+	report := reporter.Generate(2022, 1, "Category", true)
+
+	assert.Empty(t, report, "Report should be empty")
+}
+
 type repositoryMock struct {
 	data []ClockifyTimeEntry
 }

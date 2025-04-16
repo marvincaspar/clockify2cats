@@ -63,8 +63,10 @@ func (r Reporter) convertTimeEntries(start string, timeEntries []ClockifyTimeEnt
 		}
 	}
 
-	if billableSum == 0 {
-		//TODO Fehler werfen
+	//Cancel when no billable entries are given to distribute existing shared ("*") entries
+	if billableSum == 0 && len(sharedEntries) > 0 {
+		_ = fmt.Errorf("no billable time entries found! Please distribute the shared time manually")
+		return nil
 	}
 
 	r.distributeSharedEntriesToBillableEntries(sharedEntries, catsEntries, billableSum)
