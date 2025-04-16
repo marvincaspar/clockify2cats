@@ -86,8 +86,7 @@ Fetch your user id and your default workspace id from the api `curl -H 'X-Api-Ke
 When an asterisk `*` is used in the description instead of a specific CATS ID, it indicates that the recorded time will be evenly distributed across all billable time entries. This is particularly useful when a task is defined as a Shared task.
 
 #### Example
-Project name in Clockify:
-SharedProject (*)
+Project name in Clockify: `SharedProject (*)`
 
 #### Description:
 Task description # Additional details #
