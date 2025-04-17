@@ -32,6 +32,7 @@ jobs:
           git tag --annotate "${VERSION}" --message='Created by GitHub Action'
           git push --tags
           echo "is_new_tag=1" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
       - name: Set up Go
         if: ${{ steps.create_tag.outputs.is_new_tag == 1 }}
         uses: actions/setup-go@v5
@@ -51,3 +52,4 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.create_tag.outputs.version }}

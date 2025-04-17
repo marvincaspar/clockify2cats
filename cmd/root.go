@@ -27,14 +27,14 @@ func init() {
 }
 
 func initConfig() {
-	// Find home directory.
-	home, err := os.UserHomeDir()
+	// Find config directory.
+	configDir, err := os.UserConfigDir()
 	cobra.CheckErr(err)
 
 	// Search config in home directory with name ".clockify2cats" (without extension).
-	viper.AddConfigPath(home)
+	viper.AddConfigPath(configDir + "/clockify2cats")
 	viper.SetConfigType("yaml")
-	viper.SetConfigName(".clockify2cats")
+	viper.SetConfigName("config")
 
 	viper.AutomaticEnv()
 

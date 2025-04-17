@@ -24,6 +24,8 @@ builds:
       - linux
       - windows
       - darwin
+    ldflags:
+      - -X github.com/marvincaspar/clockify2cats/cmd.Version={{ .Env.VERSION }}
 
 archives:
   - format: tar.gz

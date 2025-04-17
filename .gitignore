@@ -4,6 +4,7 @@
 .vscode
 
 /dist
+/tmp
 /vendor
 
 *.out
