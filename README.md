@@ -21,7 +21,10 @@ rm clockify2cats.tar.gz
 
 ## Usage
 
-First you need to set up your local configuration. Run `clockify2cats init --workspace <WorkspaceID> --user <UserID> --api-key <API-KEY> --description-delimiter "#"`. The configuration is stored in `~/.clockify2cats.yaml`.
+First you need to set up your local configuration. Run `clockify2cats init --workspace <WorkspaceID> --user <UserID> --api-key <API-KEY> --description-delimiter "#"`. The configuration is stored in a system specific folder
+- On Unix systems, `$XDG_CONFIG_HOME/clockify2cats/config.yaml` as specified by https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html if non-empty, else `$HOME/.configclockify2cats/config.yaml`.
+- On Darwin, it returns `$HOME/Library/Application Support/clockify2cats/config.yaml`.
+- On Windows, it returns `%AppData%\clockify2cats\config.yaml`.
 
 Then you can use `clockify2cats` to generate a report. Run `clockify2cats generate [flags]`.
 
