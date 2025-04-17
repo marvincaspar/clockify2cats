@@ -10,6 +10,16 @@
 
 ## Installation
 
+### Homebrew
+
+```sh
+brew tap marvincaspar/tap
+brew update
+brew install clockify2cats
+```
+
+### Github
+
 Download the latest binary for your system from the [GitHub release page](https://github.com/marvincaspar/clockify-cats-reporter/releases/latest/).
 
 ```sh
