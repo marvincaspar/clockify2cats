@@ -65,7 +65,7 @@ func (r Reporter) convertTimeEntries(start string, timeEntries []ClockifyTimeEnt
 
 	//Cancel when no billable entries are given to distribute existing shared ("*") entries
 	if billableSum == 0 && len(sharedEntries) > 0 {
-		_ = fmt.Errorf("no billable time entries found! Please distribute the shared time manually")
+		fmt.Println("No billable time entries found! Please distribute the shared time manually: https://app.clockify.me/timesheet")
 		return nil
 	}
 
