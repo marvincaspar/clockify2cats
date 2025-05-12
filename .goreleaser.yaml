@@ -69,6 +69,9 @@ brews:
     
     # Directory inside the repository to put the formula.
     directory: Formula
+
+    # App description
+    description: "CLI for exporting clockify data and generate a SAP CATS report as csv"
     
     # Custom install command (optional)
     install: |
