@@ -53,12 +53,16 @@ func newGenerateCmd(t time.Time, reporter report.ReporterInterface) *cobra.Comma
 				os.Exit(1)
 			}
 
-			report := reporter.Generate(
+			report, err := reporter.Generate(
 				year,
 				week,
 				flagCategory,
 				flagWithText,
 			)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+				os.Exit(1)
+			}
 
 			fmt.Println(report)
 

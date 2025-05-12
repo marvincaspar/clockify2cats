@@ -50,8 +50,9 @@ func TestReporter_Generate_withTwoTimeEntriesForTheSameProjectAndDescription(t *
 		},
 	}
 
-	report := reporter.Generate(2022, 1, "Category", true)
+	report, err := reporter.Generate(2022, 1, "Category", true)
 
+	assert.Nil(t, err)
 	assert.NotEmpty(t, report, "Report should not be empty")
 
 	entities := strings.Split(report, "\n")
@@ -111,7 +112,8 @@ func TestReporter_Generate_withTwoTimeEntriesForTheSameProjectAndDifferentDescri
 		},
 	}
 
-	report := reporter.Generate(2022, 1, "Category", true)
+	report, err := reporter.Generate(2022, 1, "Category", true)
+	assert.Nil(t, err)
 
 	assert.NotEmpty(t, report, "Report should not be empty")
 
@@ -181,7 +183,8 @@ func TestReporter_Generate_withTwoTimeEntriesForTheDifferentProjectAndDifferentD
 		},
 	}
 
-	report := reporter.Generate(2022, 1, "CategoryChanged", false)
+	report, err := reporter.Generate(2022, 1, "CategoryChanged", false)
+	assert.Nil(t, err)
 
 	assert.NotEmpty(t, report, "Report should not be empty")
 
@@ -230,7 +233,8 @@ func TestReporter_Generate_withSharedTimeEntriesForTwoProjects(t *testing.T) {
 		},
 	}
 
-	report := reporter.Generate(2022, 1, "Category", true)
+	report, err := reporter.Generate(2022, 1, "Category", true)
+	assert.Nil(t, err)
 
 	assert.NotEmpty(t, report, "Report should not be empty")
 
@@ -283,7 +287,8 @@ func TestReporter_Generate_withDescriptionBlockTimeEntry(t *testing.T) {
 		},
 	}
 
-	report := reporter.Generate(2022, 1, "Category", true)
+	report, err := reporter.Generate(2022, 1, "Category", true)
+	assert.Nil(t, err)
 
 	assert.NotEmpty(t, report, "Report should not be empty")
 
@@ -382,7 +387,8 @@ func TestReporter_ShareBillableEntries(t *testing.T) {
 		},
 	}
 
-	report := reporter.Generate(2022, 1, "Category", true)
+	report, err := reporter.Generate(2022, 1, "Category", true)
+	assert.Nil(t, err)
 
 	assert.NotEmpty(t, report, "Report should not be empty")
 
@@ -467,8 +473,9 @@ func TestReporter_ErrorOnShareBillableEntriesWhenNoBillableEntryIsGiven(t *testi
 		},
 	}
 
-	report := reporter.Generate(2022, 1, "Category", true)
+	report, err := reporter.Generate(2022, 1, "Category", true)
 
+	assert.Equal(t, err.Error(), "No billable time entries found! Please distribute the shared time manually: https://app.clockify.me/timesheet")
 	assert.Empty(t, report, "Report should be empty")
 }
 

@@ -1,6 +1,7 @@
 package report
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"sort"
@@ -17,7 +18,7 @@ var (
 )
 
 type ReporterInterface interface {
-	Generate(year int, week int, category string, withText bool) string
+	Generate(year int, week int, category string, withText bool) (string, error)
 }
 
 type Reporter struct {
@@ -25,18 +26,22 @@ type Reporter struct {
 	DescriptionDelimiter string
 }
 
-func (r Reporter) Generate(year int, week int, category string, withText bool) string {
+func (r Reporter) Generate(year int, week int, category string, withText bool) (string, error) {
 	start := getFirstDayOfWeek(year, week).Format(timeFormat)
 
 	timeEntries := r.Repository.FetchClockifyData(start)
 
-	convertedTimeEntries := r.convertTimeEntries(start, timeEntries, withText)
+	convertedTimeEntries, err := r.convertTimeEntries(start, timeEntries, withText)
+
+	if err != nil {
+		return "", err
+	}
 
 	report := r.generateCatsReportData(convertedTimeEntries, category, withText)
-	return report
+	return report, nil
 }
 
-func (r Reporter) convertTimeEntries(start string, timeEntries []ClockifyTimeEntry, withText bool) []CatsEntity {
+func (r Reporter) convertTimeEntries(start string, timeEntries []ClockifyTimeEntry, withText bool) ([]CatsEntity, error) {
 	startToDate, _ := time.Parse(timeFormat, start)
 	catsEntries := []CatsEntity{}
 	nonBillableCatsEntries := []CatsEntity{}
@@ -65,13 +70,12 @@ func (r Reporter) convertTimeEntries(start string, timeEntries []ClockifyTimeEnt
 
 	//Cancel when no billable entries are given to distribute existing shared ("*") entries
 	if billableSum == 0 && len(sharedEntries) > 0 {
-		fmt.Println("No billable time entries found! Please distribute the shared time manually: https://app.clockify.me/timesheet")
-		return nil
+		return nil, errors.New("No billable time entries found! Please distribute the shared time manually: https://app.clockify.me/timesheet")
 	}
 
 	r.distributeSharedEntriesToBillableEntries(sharedEntries, catsEntries, billableSum)
 
-	return append(catsEntries, nonBillableCatsEntries...)
+	return append(catsEntries, nonBillableCatsEntries...), nil
 }
 
 func (r Reporter) distributeSharedEntriesToBillableEntries(sharedEntries []ClockifyTimeEntry, catsEntries []CatsEntity, billableSum float64) {

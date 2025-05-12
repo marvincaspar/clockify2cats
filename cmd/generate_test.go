@@ -126,7 +126,7 @@ func TestGenerateCmd_WithOptions(t *testing.T) {
 
 type reporterMock struct{ mock.Mock }
 
-func (m *reporterMock) Generate(year int, week int, category string, withText bool) string {
+func (m *reporterMock) Generate(year int, week int, category string, withText bool) (string, error) {
 	args := m.Called(year, week, category, withText)
-	return args.String(0)
+	return args.String(0), nil
 }
