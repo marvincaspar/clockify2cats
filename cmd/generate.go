@@ -28,7 +28,7 @@ func newGenerateCmd(t time.Time, reporter report.ReporterInterface) *cobra.Comma
 		Long:  `Generate a report from your clockify data for a specific week and print it to stdout. You can also copy it to the clipboard.`,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if flagMonthChange != "" && flagMonthChange != "start" && flagMonthChange != "end" {
-				return fmt.Errorf("invalid value %q for --month: must be \"start\" or \"end\"", flagMonthChange)
+				return fmt.Errorf("invalid value %q for --month-boundary: must be \"start\" or \"end\"", flagMonthChange)
 			}
 			return nil
 		},
@@ -114,7 +114,7 @@ func init() {
 	generateCmd.Flags().BoolVarP(&flagCurrentWeek, "current", "c", false, "Current week")
 	generateCmd.MarkFlagsOneRequired("week", "last", "current")
 	generateCmd.MarkFlagsMutuallyExclusive("week", "last", "current")
-	generateCmd.Flags().StringVarP(&flagMonthChange, "month", "m", "", `Filter entries for weeks spanning a month boundary: "start" keeps the new month, "end" keeps the current month`)
+	generateCmd.Flags().StringVarP(&flagMonthChange, "month-boundary", "m", "", `Filter entries for weeks spanning a month boundary: "start" keeps the new month, "end" keeps the current month`)
 
 	generateCmd.Flags().BoolVarP(&flagCopyToClipboard, "copy", "C", false, "Copy report to clipboard")
 
