@@ -18,7 +18,7 @@ var (
 )
 
 type ReporterInterface interface {
-	Generate(year int, week int, category string, withText bool) (string, error)
+	Generate(year int, week int, category string, withText bool, monthChange string) (string, error)
 }
 
 type Reporter struct {
@@ -26,12 +26,12 @@ type Reporter struct {
 	DescriptionDelimiter string
 }
 
-func (r Reporter) Generate(year int, week int, category string, withText bool) (string, error) {
+func (r Reporter) Generate(year int, week int, category string, withText bool, monthChange string) (string, error) {
 	start := getFirstDayOfWeek(year, week).Format(timeFormat)
 
 	timeEntries := r.Repository.FetchClockifyData(start)
 
-	convertedTimeEntries, err := r.convertTimeEntries(start, timeEntries, withText)
+	convertedTimeEntries, err := r.convertTimeEntries(start, timeEntries, withText, monthChange)
 
 	if err != nil {
 		return "", err
@@ -41,8 +41,9 @@ func (r Reporter) Generate(year int, week int, category string, withText bool) (
 	return report, nil
 }
 
-func (r Reporter) convertTimeEntries(start string, timeEntries []ClockifyTimeEntry, withText bool) ([]CatsEntity, error) {
+func (r Reporter) convertTimeEntries(start string, timeEntries []ClockifyTimeEntry, withText bool, monthChange string) ([]CatsEntity, error) {
 	startToDate, _ := time.Parse(timeFormat, start)
+	startMonth := startToDate.Month()
 	catsEntries := []CatsEntity{}
 	nonBillableCatsEntries := []CatsEntity{}
 	sharedEntries := []ClockifyTimeEntry{}
@@ -52,6 +53,13 @@ func (r Reporter) convertTimeEntries(start string, timeEntries []ClockifyTimeEnt
 		startDate, _ := time.Parse(timeFormat, timeEntry.TimeInterval.Start)
 		cleanDuration := strings.ToLower(strings.Replace(timeEntry.TimeInterval.Duration, "PT", "", 1))
 		duration, _ := time.ParseDuration(cleanDuration)
+
+		if monthChange == "end" && startMonth != startDate.Month() {
+			continue
+		}
+		if monthChange == "start" && startDate.Month() == startMonth {
+			continue
+		}
 
 		catsIDs := r.getCatsIDs(timeEntry)
 

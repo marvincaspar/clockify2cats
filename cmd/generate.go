@@ -15,6 +15,7 @@ var (
 	flagWeek            int
 	flagLastWeek        bool
 	flagCurrentWeek     bool
+	flagMonthChange     string
 	flagCopyToClipboard bool
 	flagCategory        string
 	flagWithText        bool
@@ -58,6 +59,7 @@ func newGenerateCmd(t time.Time, reporter report.ReporterInterface) *cobra.Comma
 				week,
 				flagCategory,
 				flagWithText,
+				flagMonthChange,
 			)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
@@ -106,6 +108,7 @@ func init() {
 	generateCmd.Flags().BoolVarP(&flagCurrentWeek, "current", "c", false, "Current week")
 	generateCmd.MarkFlagsOneRequired("week", "last", "current")
 	generateCmd.MarkFlagsMutuallyExclusive("week", "last", "current")
+	generateCmd.Flags().StringVarP(&flagMonthChange, "month", "m", "", "Month starting or ending")
 
 	generateCmd.Flags().BoolVarP(&flagCopyToClipboard, "copy", "C", false, "Copy report to clipboard")
 
