@@ -1,6 +1,6 @@
 module github.com/marvincaspar/clockify2cats
 
-go 1.22
+go 1.26
 
 require (
 	github.com/atotto/clipboard v0.1.4

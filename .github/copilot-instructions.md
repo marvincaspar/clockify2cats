@@ -1,5 +1,7 @@
 # Copilot Instructions
 
+**Go version:** 1.26
+
 ## Commands
 
 ```sh
