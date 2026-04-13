@@ -4,7 +4,7 @@
 
 # Clockify2Cats
 
-`clockify2cats` is a tool which exports your time from clockify and prints a report into a format that you can capy and paste into SAP CATS (Cross-Application Time Sheet).
+`clockify2cats` is a tool which exports your time from clockify and prints a report into a format that you can copy and paste into SAP CATS (Cross-Application Time Sheet).
 
 ![Clockify2Cats usage](./clockify2cats.gif)
 
@@ -31,93 +31,99 @@ rm clockify2cats.tar.gz
 
 ## Usage
 
-First you need to set up your local configuration. Run `clockify2cats init --workspace <WorkspaceID> --user <UserID> --api-key <API-KEY> --description-delimiter "#"`. The configuration is stored in a system specific folder
-- On Unix systems, `$XDG_CONFIG_HOME/clockify2cats/config.yaml` as specified by https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html if non-empty, else `$HOME/.config/clockify2cats/config.yaml`.
-- On Darwin, it returns `$HOME/Library/Application Support/clockify2cats/config.yaml`.
-- On Windows, it returns `%AppData%\clockify2cats\config.yaml`.
+### 1. Configure
 
-Then you can use `clockify2cats` to generate a report. Run `clockify2cats generate [flags]`.
+Run `init` once to store your Clockify credentials:
 
-Flags:
-
-```
-      --category string   Category identifyer (default "ID")
-  -C, --copy              Copy report to clipboard
-  -c, --current           Current week
-  -h, --help              help for generate
-  -l, --last              Last week
-  -t, --text              Print with text
-  -w, --week int          Week number
+```sh
+clockify2cats init \
+  --workspace <WorkspaceID> \
+  --user <UserID> \
+  --api-key <API-KEY> \
+  --description-delimiter "#"   # optional, defaults to "#"
 ```
 
-Example:
+Fetch your workspace and user IDs from the Clockify API:
+
+```sh
+curl -H 'X-Api-Key: <API-KEY>' https://api.clockify.me/api/v1/user \
+  | jq '. | {id, defaultWorkspace}'
+```
+
+The configuration is stored in a platform-specific directory:
+
+| OS | Path |
+|----|------|
+| Linux | `$XDG_CONFIG_HOME/clockify2cats/config.yaml` (or `$HOME/.config/clockify2cats/config.yaml`) |
+| macOS | `$HOME/Library/Application Support/clockify2cats/config.yaml` |
+| Windows | `%AppData%\clockify2cats\config.yaml` |
+
+### 2. Generate a report
+
+```sh
+clockify2cats generate --current          # current ISO week
+clockify2cats generate --last             # previous ISO week
+clockify2cats generate --week <number>    # specific week number
+
+# Optional flags:
+#   -t, --text              include text columns (Text, Text 2, Text External)
+#   -C, --copy              copy output to clipboard
+#       --category string   override the category column (default "ID")
+#   -m, --month-boundary end|start   filter a week that spans a month boundary
+```
+
+Example output:
 
 ```
 $ clockify2cats generate --current
 
-CATSID-1                    ID      8.06            4.68            1.26            2.34            7.62            0.00            0.00
-CATSID-2                    ID      0.00            0.47            6.02            5.13            0.73            0.00            0.00
-CATSID-3                    ID      0.00            2.93            0.00            0.53            0.00            0.00            0.00
+# Rec. order              Category  Mon   Tue   Wed   Thu   Fri   Sat   Sun
+CATSID-1                    ID      8.06  4.68  1.26  2.34  7.62  0.00  0.00
+CATSID-2                    ID      0.00  0.47  6.02  5.13  0.73  0.00  0.00
+CATSID-3                    ID      0.00  2.93  0.00  0.53  0.00  0.00  0.00
 ```
 
-This report is build for the CATS columns:
+> The comment line above is for illustration only — actual output is tab-separated with no header row.
 
-- Rec. order
-- Description - empty
-- Text - use flag `-t` to use it
-- Text 2 - use flag `-t` to use it
-- Text External - use flag `-t` to use it
-- Category - default `ID`, can be set with flag `--category <string>`
-- Monday
-- Tuesday
-- Wednesday
-- Thursday
-- Friday
-- Saturday
-- Sunday
+Output columns (tab-separated): `Rec. order` · `Description` (empty) · `Text` · `Text 2` · `Text External` · `Category` · Mon–Sun hours
+
+Use `--text` to populate the Text columns from your Clockify entry descriptions (see [Clockify setup](#clockify-setup)).  
+Use `--month-boundary end` or `--month-boundary start` to split reporting for weeks that cross a month boundary.
 
 ## Clockify setup
 
-Create projects and name it like `<ProjectName> (<CatsID>)`. Track your time for the projects. Use the clockify description field to add additional information for the CATS text fields. You can also use a
-shared
-project to split time between multiple CATS projects. The project name should be `<SharedProjectName> (<CatsID1>,<CatsID2>,...)`. The clockify description is used for the CATS text fields and is split by a
-defined
-delimiter, default is `#`. The rules for the split are:
+### Project naming
 
-- no delimiter found: the whole description is used for the CATS text 2 field
-- one delimiter found: the description before the delimiter is used for the CATS text field, the description after the delimiter is used for the CATS text 2 field
-- two delimiters found: the description before the first delimiter is used for the CATS text field, the description between the first and the second delimiter is used for the CATS text 2 field, the description
-  after the second delimiter is used for the CATS text external field
+Name your Clockify projects using the pattern `<ProjectName> (<CatsID>)`. The CATS ID is extracted from the parentheses.
 
-This is only relevant if you use the `-t` or `--text` flag.
+| Project name | Behaviour |
+|---|---|
+| `My Project (CATSID-1)` | Maps all time to `CATSID-1` |
+| `My Project (CATSID-1, CATSID-2)` | Splits time equally between `CATSID-1` and `CATSID-2` |
+| `My Project (*)` | Distributes time proportionally across all other billable entries |
 
-Generate an API for clockify. It can be found in your profile settings.
+### Description delimiter
 
-Fetch your user id and your default workspace id from the api `curl -H 'X-Api-Key: <API-KEY>' https://api.clockify.me/api/v1/user | jq ". | {id, defaultWorkspace}"`.
+Use the description field in Clockify to populate the CATS text columns (only shown with `--text`). Fields are separated by the configured delimiter (default `#`):
 
-### Usage of the Asterisk (`*`) in the Description
-When an asterisk `*` is used in the description instead of a specific CATS ID, it indicates that the recorded time will be evenly distributed across all billable time entries. This is particularly useful when a task is defined as a Shared task.
+| Description | Text | Text 2 | Text External |
+|---|---|---|---|
+| `Task description` | _(empty)_ | `Task description` | _(empty)_ |
+| `Task # Detail` | `Task` | `Detail` | _(empty)_ |
+| `Task # Detail # External` | `Task` | `Detail` | `External` |
 
-#### Example
-Project name in Clockify: `SharedProject (*)`
+### Proportional time distribution (`*`)
 
-#### Description:
-Task description # Additional details #
+When a project is named `SharedProject (*)`, its recorded hours are distributed **proportionally** across all other entries marked as `billable=true`, weighted by hours already logged.
 
-#### Behavior
-`*` in the project name signifies that the recorded time will be evenly distributed across the specified other time entries which are marked as "billable=true".
+**Example:** 9 hours logged to `SharedProject (*)` with three other billable projects (3 h each):
 
-#### Result
-If, for example, 9 hours are recorded for the project mentioned above, the time will be distributed as follows:
-
-| CATS ID              | Hours |
-|----------------------|-------|
-| CATSID1              | 3.00  |
-| CATSID2              | 3.00  |
-| CATSID3              | 3.00  |
-| CATSID4 NOT BILLABLE | 0.00  |
-
-The fields Text, Text 2, and Text External will be populated according to the description.
+| CATS ID | Hours |
+|---|---|
+| CATSID1 | 3.00 + 3.00 (shared) = **6.00** |
+| CATSID2 | 3.00 + 3.00 (shared) = **6.00** |
+| CATSID3 | 3.00 + 3.00 (shared) = **6.00** |
+| CATSID4 _(not billable)_ | 0.00 |
 
 ## Release
 
