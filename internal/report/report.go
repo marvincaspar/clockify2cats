@@ -29,7 +29,10 @@ type Reporter struct {
 func (r Reporter) Generate(year int, week int, category string, withText bool, monthChange string) (string, error) {
 	start := getFirstDayOfWeek(year, week).Format(timeFormat)
 
-	timeEntries := r.Repository.FetchClockifyData(start)
+	timeEntries, err := r.Repository.FetchClockifyData(start)
+	if err != nil {
+		return "", err
+	}
 
 	convertedTimeEntries, err := r.convertTimeEntries(start, timeEntries, withText, monthChange)
 

@@ -1,6 +1,7 @@
 package report
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -583,8 +584,20 @@ func TestReporter_Generate_withOneDelimiterInDescription(t *testing.T) {
 
 type repositoryMock struct {
 	data []ClockifyTimeEntry
+	err  error
 }
 
-func (r repositoryMock) FetchClockifyData(start string) []ClockifyTimeEntry {
-	return r.data
+func (r repositoryMock) FetchClockifyData(start string) ([]ClockifyTimeEntry, error) {
+	return r.data, r.err
+}
+
+func TestReporter_Generate_propagatesFetchError(t *testing.T) {
+	reporter := Reporter{
+		DescriptionDelimiter: "#",
+		Repository:           repositoryMock{err: errors.New("network failure")},
+	}
+
+	report, err := reporter.Generate(2022, 1, "ID", false, "")
+	assert.EqualError(t, err, "network failure")
+	assert.Empty(t, report)
 }
