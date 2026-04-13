@@ -5,8 +5,7 @@ import (
 )
 
 func getFirstDayOfWeek(year int, week int) time.Time {
-	timezone := time.FixedZone("Europe/Berlin", 0)
-	date := time.Date(year, 0, 0, 0, 0, 0, 0, timezone)
+	date := time.Date(year, 0, 0, 0, 0, 0, 0, time.UTC)
 	isoYear, isoWeek := date.ISOWeek()
 
 	// iterate back to Monday
@@ -21,8 +20,9 @@ func getFirstDayOfWeek(year int, week int) time.Time {
 		isoYear, isoWeek = date.ISOWeek()
 	}
 
-	// iterate forward to the first day of the given week
-	for isoWeek < week {
+	// iterate forward to the first day of the given week,
+	// guarding against invalid week numbers drifting into the next year
+	for isoWeek < week && isoYear == year {
 		date = date.AddDate(0, 0, 7)
 		isoYear, isoWeek = date.ISOWeek()
 	}

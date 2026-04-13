@@ -35,6 +35,12 @@ func (r Repository) FetchClockifyData(start string) []ClockifyTimeEntry {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Fprintf(os.Stderr, "Clockify API error: %s\n", resp.Status)
+		os.Exit(1)
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -43,7 +49,10 @@ func (r Repository) FetchClockifyData(start string) []ClockifyTimeEntry {
 	}
 
 	var timeEntries []ClockifyTimeEntry
-	_ = json.Unmarshal([]byte(body), &timeEntries)
+	if err := json.Unmarshal(body, &timeEntries); err != nil {
+		fmt.Fprintf(os.Stderr, "Error parsing Clockify response: %s\n", err)
+		os.Exit(1)
+	}
 
 	return timeEntries
 }

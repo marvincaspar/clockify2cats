@@ -174,11 +174,7 @@ func (r Reporter) splitDescription(description string) []string {
 		return []string{strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]), ""}
 	}
 
-	if len(parts) == 1 {
-		return []string{"", strings.TrimSpace(parts[0]), ""}
-	}
-
-	return []string{"", description, ""}
+	return []string{"", strings.TrimSpace(parts[0]), ""}
 }
 
 func (r Reporter) generateCatsReportData(catsEntries []CatsEntity, category string, withText bool) string {

@@ -27,6 +27,9 @@ func newGenerateCmd(t time.Time, reporter report.ReporterInterface) *cobra.Comma
 		Short: "Generate report for a specific week",
 		Long:  `Generate a report from your clockify data for a specific week and print it to stdout. You can also copy it to the clipboard.`,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if flagWeek > 53 {
+				return fmt.Errorf("invalid value %d for --week: must be between 1 and 53", flagWeek)
+			}
 			if flagMonthChange != "" && flagMonthChange != "start" && flagMonthChange != "end" {
 				return fmt.Errorf("invalid value %q for --month-boundary: must be \"start\" or \"end\"", flagMonthChange)
 			}

@@ -133,6 +133,15 @@ func TestGenerateCmd_MonthFlag_invalidValue(t *testing.T) {
 	assert.EqualError(t, err, `invalid value "invalid" for --month-boundary: must be "start" or "end"`)
 }
 
+func TestGenerateCmd_WeekFlag_tooLarge(t *testing.T) {
+	cmd := newGenerateCmd(time.Now(), &reporterMock{})
+	flagWeek = 54
+	flagMonthChange = ""
+
+	err := cmd.PreRunE(cmd, []string{})
+	assert.EqualError(t, err, "invalid value 54 for --week: must be between 1 and 53")
+}
+
 // func TestGenerateCmd_WithDate1JanuarAndFlagCurrent(t *testing.T) {
 // 	m := new(reporterMock)
 
