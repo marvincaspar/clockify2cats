@@ -15,6 +15,7 @@ var (
 	flagWeek            int
 	flagLastWeek        bool
 	flagCurrentWeek     bool
+	flagMonthChange     string
 	flagCopyToClipboard bool
 	flagCategory        string
 	flagWithText        bool
@@ -25,6 +26,15 @@ func newGenerateCmd(t time.Time, reporter report.ReporterInterface) *cobra.Comma
 		Use:   "generate",
 		Short: "Generate report for a specific week",
 		Long:  `Generate a report from your clockify data for a specific week and print it to stdout. You can also copy it to the clipboard.`,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if flagWeek > 53 {
+				return fmt.Errorf("invalid value %d for --week: must be between 1 and 53", flagWeek)
+			}
+			if flagMonthChange != "" && flagMonthChange != "start" && flagMonthChange != "end" {
+				return fmt.Errorf("invalid value %q for --month-boundary: must be \"start\" or \"end\"", flagMonthChange)
+			}
+			return nil
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 			var week int
 			year, currentWeek := t.ISOWeek()
@@ -58,6 +68,7 @@ func newGenerateCmd(t time.Time, reporter report.ReporterInterface) *cobra.Comma
 				week,
 				flagCategory,
 				flagWithText,
+				flagMonthChange,
 			)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
@@ -106,10 +117,11 @@ func init() {
 	generateCmd.Flags().BoolVarP(&flagCurrentWeek, "current", "c", false, "Current week")
 	generateCmd.MarkFlagsOneRequired("week", "last", "current")
 	generateCmd.MarkFlagsMutuallyExclusive("week", "last", "current")
+	generateCmd.Flags().StringVarP(&flagMonthChange, "month-boundary", "m", "", `Filter entries for weeks spanning a month boundary: "start" keeps the new month, "end" keeps the current month`)
 
 	generateCmd.Flags().BoolVarP(&flagCopyToClipboard, "copy", "C", false, "Copy report to clipboard")
 
-	generateCmd.Flags().StringVar(&flagCategory, "category", "ID", "Category identifyer")
+	generateCmd.Flags().StringVar(&flagCategory, "category", "ID", "Category identifier")
 	generateCmd.Flags().BoolVarP(&flagWithText, "text", "t", false, "Print with text")
 
 	// Cobra supports local flags which will only run when this command

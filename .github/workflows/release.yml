@@ -37,7 +37,7 @@ jobs:
         if: ${{ steps.create_tag.outputs.is_new_tag == 1 }}
         uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
+          go-version: "1.26"
       - name: Install dependencies
         if: ${{ steps.create_tag.outputs.is_new_tag == 1 }}
         run: |

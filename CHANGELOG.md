@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2026-04-13
+
+### Added
+
+- Add `--month-boundary` (`-m`) flag to filter entries in weeks that span a month boundary. Accepted values are `start` (keep new month entries) and `end` (keep current month entries)
+- Add validation for `--month-boundary` flag — invalid values produce a clear error message
+
 ## [3.2.2] - 2025-05-12
 
 ### Fixed
