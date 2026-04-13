@@ -50,7 +50,7 @@ func TestReporter_Generate_withTwoTimeEntriesForTheSameProjectAndDescription(t *
 		},
 	}
 
-	report, err := reporter.Generate(2022, 1, "Category", true)
+	report, err := reporter.Generate(2022, 1, "Category", true, "")
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, report, "Report should not be empty")
@@ -112,7 +112,7 @@ func TestReporter_Generate_withTwoTimeEntriesForTheSameProjectAndDifferentDescri
 		},
 	}
 
-	report, err := reporter.Generate(2022, 1, "Category", true)
+	report, err := reporter.Generate(2022, 1, "Category", true, "")
 	assert.Nil(t, err)
 
 	assert.NotEmpty(t, report, "Report should not be empty")
@@ -183,7 +183,7 @@ func TestReporter_Generate_withTwoTimeEntriesForTheDifferentProjectAndDifferentD
 		},
 	}
 
-	report, err := reporter.Generate(2022, 1, "CategoryChanged", false)
+	report, err := reporter.Generate(2022, 1, "CategoryChanged", false, "")
 	assert.Nil(t, err)
 
 	assert.NotEmpty(t, report, "Report should not be empty")
@@ -233,7 +233,7 @@ func TestReporter_Generate_withSharedTimeEntriesForTwoProjects(t *testing.T) {
 		},
 	}
 
-	report, err := reporter.Generate(2022, 1, "Category", true)
+	report, err := reporter.Generate(2022, 1, "Category", true, "")
 	assert.Nil(t, err)
 
 	assert.NotEmpty(t, report, "Report should not be empty")
@@ -287,7 +287,7 @@ func TestReporter_Generate_withDescriptionBlockTimeEntry(t *testing.T) {
 		},
 	}
 
-	report, err := reporter.Generate(2022, 1, "Category", true)
+	report, err := reporter.Generate(2022, 1, "Category", true, "")
 	assert.Nil(t, err)
 
 	assert.NotEmpty(t, report, "Report should not be empty")
@@ -387,7 +387,7 @@ func TestReporter_ShareBillableEntries(t *testing.T) {
 		},
 	}
 
-	report, err := reporter.Generate(2022, 1, "Category", true)
+	report, err := reporter.Generate(2022, 1, "Category", true, "")
 	assert.Nil(t, err)
 
 	assert.NotEmpty(t, report, "Report should not be empty")
@@ -473,10 +473,112 @@ func TestReporter_ErrorOnShareBillableEntriesWhenNoBillableEntryIsGiven(t *testi
 		},
 	}
 
-	report, err := reporter.Generate(2022, 1, "Category", true)
+	report, err := reporter.Generate(2022, 1, "Category", true, "")
 
 	assert.Equal(t, err.Error(), "No billable time entries found! Please distribute the shared time manually: https://app.clockify.me/timesheet")
 	assert.Empty(t, report, "Report should be empty")
+}
+
+// Week 5 of 2022 runs Mon Jan 31 – Sun Feb 6, spanning two months.
+func makeWeek5Entries() []ClockifyTimeEntry {
+	makeEntry := func(start, duration, project string) ClockifyTimeEntry {
+		return ClockifyTimeEntry{
+			Description: "Task",
+			TimeInterval: struct {
+				Start    string `json:"start"`
+				End      string `json:"end"`
+				Duration string `json:"duration"`
+			}{Start: start, Duration: duration},
+			Project: struct {
+				Name string `json:"name"`
+			}{Name: project},
+		}
+	}
+	return []ClockifyTimeEntry{
+		makeEntry("2022-01-31T08:00:00.000Z", "PT1H", "Project (CATS1)"), // January (same as week start)
+		makeEntry("2022-02-03T08:00:00.000Z", "PT2H", "Project (CATS2)"), // February (new month)
+	}
+}
+
+func TestReporter_Generate_monthChangeEnd_keepsCurrentMonthEntries(t *testing.T) {
+	reporter := Reporter{
+		DescriptionDelimiter: "#",
+		Repository:           repositoryMock{data: makeWeek5Entries()},
+	}
+
+	report, err := reporter.Generate(2022, 5, "ID", false, "end")
+	assert.Nil(t, err)
+
+	entities := strings.Split(strings.TrimRight(report, "\n"), "\n")
+	assert.Equal(t, 1, len(entities), "only the January entry should be kept")
+	assert.Contains(t, entities[0], "CATS1")
+}
+
+func TestReporter_Generate_monthChangeStart_keepsNewMonthEntries(t *testing.T) {
+	reporter := Reporter{
+		DescriptionDelimiter: "#",
+		Repository:           repositoryMock{data: makeWeek5Entries()},
+	}
+
+	report, err := reporter.Generate(2022, 5, "ID", false, "start")
+	assert.Nil(t, err)
+
+	entities := strings.Split(strings.TrimRight(report, "\n"), "\n")
+	assert.Equal(t, 1, len(entities), "only the February entry should be kept")
+	assert.Contains(t, entities[0], "CATS2")
+}
+
+func TestReporter_Generate_projectWithoutParentheses_usesDashAsCatsID(t *testing.T) {
+	reporter := Reporter{
+		DescriptionDelimiter: "#",
+		Repository: repositoryMock{data: []ClockifyTimeEntry{
+			{
+				Description: "Task",
+				TimeInterval: struct {
+					Start    string `json:"start"`
+					End      string `json:"end"`
+					Duration string `json:"duration"`
+				}{Start: "2022-01-03T08:00:00.000Z", Duration: "PT1H"},
+				Project: struct {
+					Name string `json:"name"`
+				}{Name: "Project without CATS ID"},
+			},
+		}},
+	}
+
+	report, err := reporter.Generate(2022, 1, "ID", false, "")
+	assert.Nil(t, err)
+	assert.NotEmpty(t, report)
+
+	parts := strings.Split(strings.TrimRight(report, "\n"), "\t")
+	assert.Equal(t, "-", parts[0])
+}
+
+func TestReporter_Generate_withOneDelimiterInDescription(t *testing.T) {
+	reporter := Reporter{
+		DescriptionDelimiter: "#",
+		Repository: repositoryMock{data: []ClockifyTimeEntry{
+			{
+				Description: "Text field # Text2 field",
+				TimeInterval: struct {
+					Start    string `json:"start"`
+					End      string `json:"end"`
+					Duration string `json:"duration"`
+				}{Start: "2022-01-03T08:00:00.000Z", Duration: "PT1H"},
+				Project: struct {
+					Name string `json:"name"`
+				}{Name: "Project (123)"},
+			},
+		}},
+	}
+
+	report, err := reporter.Generate(2022, 1, "ID", true, "")
+	assert.Nil(t, err)
+
+	parts := strings.Split(strings.TrimRight(report, "\n"), "\t")
+	assert.Equal(t, "Text field", parts[2])  // Text
+	assert.Equal(t, "Text2 field", parts[3]) // Text2
+	assert.Equal(t, "", parts[4])            // TextExternal empty
 }
 
 type repositoryMock struct {

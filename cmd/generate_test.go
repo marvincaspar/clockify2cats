@@ -66,7 +66,7 @@ func TestGenerateCmd_WithOptions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := new(reporterMock)
 
-			m.On("Generate", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("").Once()
+			m.On("Generate", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("").Once()
 
 			flagCurrentWeek = tt.args.flagCurrentWeek
 			flagLastWeek = tt.args.flagLastWeek
@@ -77,9 +77,60 @@ func TestGenerateCmd_WithOptions(t *testing.T) {
 
 			cmd.Run(cmd, []string{})
 
-			m.AssertCalled(t, "Generate", tt.args.wantYear, tt.args.wantWeek, "ID", false)
+			m.AssertCalled(t, "Generate", tt.args.wantYear, tt.args.wantWeek, "ID", false, "")
 		})
 	}
+}
+
+func TestGenerateCmd_WithFutureWeekNumber_usesLastYear(t *testing.T) {
+	m := new(reporterMock)
+	m.On("Generate", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("").Once()
+
+	flagCurrentWeek = false
+	flagLastWeek = false
+	flagWeek = 5 // week 5 is before current week 49, so same year
+	testTime := time.Date(2024, time.December, 1, 0, 0, 0, 0, time.UTC) // week 49
+	cmd := newGenerateCmd(testTime, m)
+	cmd.Run(cmd, []string{})
+
+	m.AssertCalled(t, "Generate", 2024, 5, "ID", false, "")
+}
+
+func TestGenerateCmd_WithWeekAheadOfCurrentWeek_usesPreviousYear(t *testing.T) {
+	m := new(reporterMock)
+	m.On("Generate", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("").Once()
+
+	flagCurrentWeek = false
+	flagLastWeek = false
+	flagWeek = 52 // week 52 is after current week 1, so previous year
+	testTime := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC) // week 1
+	cmd := newGenerateCmd(testTime, m)
+	cmd.Run(cmd, []string{})
+
+	m.AssertCalled(t, "Generate", 2023, 52, "ID", false, "")
+}
+
+func TestGenerateCmd_MonthFlag_validValues(t *testing.T) {
+	for _, valid := range []string{"start", "end", ""} {
+		m := new(reporterMock)
+		m.On("Generate", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("").Once()
+
+		flagCurrentWeek = true
+		flagMonthChange = valid
+		testTime := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
+		cmd := newGenerateCmd(testTime, m)
+
+		err := cmd.PreRunE(cmd, []string{})
+		assert.Nil(t, err, "expected no error for --month-boundary=%q", valid)
+	}
+}
+
+func TestGenerateCmd_MonthFlag_invalidValue(t *testing.T) {
+	cmd := newGenerateCmd(time.Now(), &reporterMock{})
+	flagMonthChange = "invalid"
+
+	err := cmd.PreRunE(cmd, []string{})
+	assert.EqualError(t, err, `invalid value "invalid" for --month-boundary: must be "start" or "end"`)
 }
 
 // func TestGenerateCmd_WithDate1JanuarAndFlagCurrent(t *testing.T) {
@@ -126,7 +177,7 @@ func TestGenerateCmd_WithOptions(t *testing.T) {
 
 type reporterMock struct{ mock.Mock }
 
-func (m *reporterMock) Generate(year int, week int, category string, withText bool) (string, error) {
-	args := m.Called(year, week, category, withText)
+func (m *reporterMock) Generate(year int, week int, category string, withText bool, monthChange string) (string, error) {
+	args := m.Called(year, week, category, withText, monthChange)
 	return args.String(0), nil
 }
