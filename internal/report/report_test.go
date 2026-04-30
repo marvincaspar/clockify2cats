@@ -582,6 +582,83 @@ func TestReporter_Generate_withOneDelimiterInDescription(t *testing.T) {
 	assert.Equal(t, "", parts[4])            // TextExternal empty
 }
 
+// TestReporter_ShareBillableEntries_MultipleSharedEntries is a regression test for a bug where
+// multiple `*` entries caused over-distribution. Each subsequent shared entry used already-inflated
+// durations as proportion base while billableSum remained the original value, producing a total
+// larger than the actual tracked time.
+//
+// Example: 8h billable, shared1=2h, shared2=2h → expected 12h, buggy code produced 12.5h.
+func TestReporter_ShareBillableEntries_MultipleSharedEntries(t *testing.T) {
+	reporter := Reporter{
+		DescriptionDelimiter: "#",
+		Repository: repositoryMock{
+			data: []ClockifyTimeEntry{
+				// 8h billable entry
+				{
+					Description: "Billable Task",
+					TimeInterval: struct {
+						Start    string `json:"start"`
+						End      string `json:"end"`
+						Duration string `json:"duration"`
+					}{
+						Start:    "2022-01-03T07:00:00Z",
+						Duration: "PT8H",
+					},
+					Project: struct {
+						Name string `json:"name"`
+					}{Name: "Project (123)"},
+					Billable: true,
+				},
+				// first shared entry: 2h
+				{
+					Description: "Shared Task 1",
+					TimeInterval: struct {
+						Start    string `json:"start"`
+						End      string `json:"end"`
+						Duration string `json:"duration"`
+					}{
+						Start:    "2022-01-03T15:00:00Z",
+						Duration: "PT2H",
+					},
+					Project: struct {
+						Name string `json:"name"`
+					}{Name: "Shared (*)"},
+					Billable: false,
+				},
+				// second shared entry: 2h
+				{
+					Description: "Shared Task 2",
+					TimeInterval: struct {
+						Start    string `json:"start"`
+						End      string `json:"end"`
+						Duration string `json:"duration"`
+					}{
+						Start:    "2022-01-03T17:00:00Z",
+						Duration: "PT2H",
+					},
+					Project: struct {
+						Name string `json:"name"`
+					}{Name: "Shared (*)"},
+					Billable: false,
+				},
+			},
+		},
+	}
+
+	report, err := reporter.Generate(2022, 1, "Category", false, "")
+	assert.Nil(t, err)
+	assert.NotEmpty(t, report)
+
+	entities := strings.Split(strings.TrimRight(report, "\n"), "\n")
+	assert.Equal(t, 1, len(entities), "should have 1 entry")
+
+	parts := strings.Split(entities[0], "\t")
+	assert.Equal(t, "123", parts[0])
+	// 8h billable + 2h shared1 + 2h shared2 = 12h total
+	// Bug produced 12,50 because second shared entry used inflated duration as proportion base
+	assert.Equal(t, "12,00", parts[6], "total hours must equal billable + all shared (not over-distributed)")
+}
+
 type repositoryMock struct {
 	data []ClockifyTimeEntry
 	err  error
