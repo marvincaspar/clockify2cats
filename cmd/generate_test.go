@@ -186,7 +186,7 @@ func TestGenerateCmd_WeekFlag_tooLarge(t *testing.T) {
 
 type reporterMock struct{ mock.Mock }
 
-func (m *reporterMock) Generate(year int, week int, category string, withText bool, monthChange string) (string, error) {
+func (m *reporterMock) Generate(year int, week int, category string, withText bool, monthChange string) (string, float64, error) {
 	args := m.Called(year, week, category, withText, monthChange)
-	return args.String(0), nil
+	return args.String(0), 0, nil
 }

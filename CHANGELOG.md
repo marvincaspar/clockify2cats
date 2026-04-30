@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.3.1] - 2026-04-30
 
+### Added
+
+- Print total calculated hours to the console after the report (excluded from clipboard copy)
+
 ### Fixed
 
 - Fix over-distribution of shared (`*`) time entries when multiple `*` entries exist in a week. Each subsequent shared entry incorrectly used already-inflated durations as proportion base, causing the total reported time to exceed actual tracked time

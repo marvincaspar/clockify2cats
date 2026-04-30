@@ -18,7 +18,7 @@ var (
 )
 
 type ReporterInterface interface {
-	Generate(year int, week int, category string, withText bool, monthChange string) (string, error)
+	Generate(year int, week int, category string, withText bool, monthChange string) (string, float64, error)
 }
 
 type Reporter struct {
@@ -26,22 +26,23 @@ type Reporter struct {
 	DescriptionDelimiter string
 }
 
-func (r Reporter) Generate(year int, week int, category string, withText bool, monthChange string) (string, error) {
+func (r Reporter) Generate(year int, week int, category string, withText bool, monthChange string) (string, float64, error) {
 	start := getFirstDayOfWeek(year, week).Format(timeFormat)
 
 	timeEntries, err := r.Repository.FetchClockifyData(start)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	convertedTimeEntries, err := r.convertTimeEntries(start, timeEntries, withText, monthChange)
 
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	report := r.generateCatsReportData(convertedTimeEntries, category, withText)
-	return report, nil
+	total := r.calculateTotalHours(convertedTimeEntries)
+	return report, total, nil
 }
 
 func (r Reporter) convertTimeEntries(start string, timeEntries []ClockifyTimeEntry, withText bool, monthChange string) ([]CatsEntity, error) {
@@ -110,6 +111,16 @@ func (r Reporter) distributeSharedEntriesToBillableEntries(sharedEntries []Clock
 			catsEntry.Durations[key] += time.Duration(sharedDurationForEntry * float64(time.Hour))
 		}
 	}
+}
+
+func (r Reporter) calculateTotalHours(catsEntries []CatsEntity) float64 {
+	total := 0.0
+	for _, entry := range catsEntries {
+		for _, d := range entry.Durations {
+			total += d.Hours()
+		}
+	}
+	return total
 }
 
 func (r Reporter) generateCATsEntriesFromTimeEntry(withText bool, timeEntry ClockifyTimeEntry, catsIDs []string, duration time.Duration, catsEntries []CatsEntity, startToDate time.Time, startDate time.Time) []CatsEntity {

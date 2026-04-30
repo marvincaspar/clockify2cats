@@ -63,7 +63,7 @@ func newGenerateCmd(t time.Time, reporter report.ReporterInterface) *cobra.Comma
 				os.Exit(1)
 			}
 
-			report, err := reporter.Generate(
+			report, totalHours, err := reporter.Generate(
 				year,
 				week,
 				flagCategory,
@@ -80,6 +80,8 @@ func newGenerateCmd(t time.Time, reporter report.ReporterInterface) *cobra.Comma
 			if flagCopyToClipboard {
 				clipboard.WriteAll(report)
 			}
+
+			fmt.Printf("Total: %.2fh\n", totalHours)
 		},
 	}
 }
