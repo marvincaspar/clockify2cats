@@ -78,7 +78,9 @@ func newGenerateCmd(t time.Time, reporter report.ReporterInterface) *cobra.Comma
 			fmt.Println(report)
 
 			if flagCopyToClipboard {
-				clipboard.WriteAll(report)
+				if err := clipboard.WriteAll(report); err != nil {
+					fmt.Fprintf(os.Stderr, "Error: could not copy to clipboard: %s\nMake sure xclip, xsel (X11) or wl-clipboard (Wayland) is installed.\n", err)
+				}
 			}
 
 			fmt.Printf("Total: %.2fh\n", totalHours)
