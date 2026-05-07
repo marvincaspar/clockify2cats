@@ -18,7 +18,7 @@ var (
 )
 
 type ReporterInterface interface {
-	Generate(year int, week int, category string, withText bool, monthChange string) (string, error)
+	Generate(year int, week int, category string, withText bool, monthChange string) (string, float64, error)
 }
 
 type Reporter struct {
@@ -26,22 +26,23 @@ type Reporter struct {
 	DescriptionDelimiter string
 }
 
-func (r Reporter) Generate(year int, week int, category string, withText bool, monthChange string) (string, error) {
+func (r Reporter) Generate(year int, week int, category string, withText bool, monthChange string) (string, float64, error) {
 	start := getFirstDayOfWeek(year, week).Format(timeFormat)
 
 	timeEntries, err := r.Repository.FetchClockifyData(start)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	convertedTimeEntries, err := r.convertTimeEntries(start, timeEntries, withText, monthChange)
 
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	report := r.generateCatsReportData(convertedTimeEntries, category, withText)
-	return report, nil
+	total := r.calculateTotalHours(convertedTimeEntries)
+	return report, total, nil
 }
 
 func (r Reporter) convertTimeEntries(start string, timeEntries []ClockifyTimeEntry, withText bool, monthChange string) ([]CatsEntity, error) {
@@ -90,18 +91,36 @@ func (r Reporter) convertTimeEntries(start string, timeEntries []ClockifyTimeEnt
 }
 
 func (r Reporter) distributeSharedEntriesToBillableEntries(sharedEntries []ClockifyTimeEntry, catsEntries []CatsEntity, billableSum float64) {
-	if len(sharedEntries) > 0 {
-		for _, sharedTimeEntry := range sharedEntries {
-			cleanDuration := strings.ToLower(strings.Replace(sharedTimeEntry.TimeInterval.Duration, "PT", "", 1))
-			sharedDuration, _ := time.ParseDuration(cleanDuration)
-			for _, catsEntry := range catsEntries {
-				for key, duration := range catsEntry.Durations {
-					sharedDurationForEntry := (duration.Hours() / billableSum) * sharedDuration.Hours()
-					catsEntry.Durations[key] += time.Duration(sharedDurationForEntry * float64(time.Hour))
-				}
-			}
+	if len(sharedEntries) == 0 {
+		return
+	}
+
+	// Sum all shared durations first, then distribute in one pass.
+	// Distributing one-by-one causes each subsequent entry to use
+	// already-inflated durations as proportion base, leading to over-distribution.
+	totalSharedHours := 0.0
+	for _, sharedTimeEntry := range sharedEntries {
+		cleanDuration := strings.ToLower(strings.Replace(sharedTimeEntry.TimeInterval.Duration, "PT", "", 1))
+		sharedDuration, _ := time.ParseDuration(cleanDuration)
+		totalSharedHours += sharedDuration.Hours()
+	}
+
+	for _, catsEntry := range catsEntries {
+		for key, duration := range catsEntry.Durations {
+			sharedDurationForEntry := (duration.Hours() / billableSum) * totalSharedHours
+			catsEntry.Durations[key] += time.Duration(sharedDurationForEntry * float64(time.Hour))
 		}
 	}
+}
+
+func (r Reporter) calculateTotalHours(catsEntries []CatsEntity) float64 {
+	total := 0.0
+	for _, entry := range catsEntries {
+		for _, d := range entry.Durations {
+			total += d.Hours()
+		}
+	}
+	return total
 }
 
 func (r Reporter) generateCATsEntriesFromTimeEntry(withText bool, timeEntry ClockifyTimeEntry, catsIDs []string, duration time.Duration, catsEntries []CatsEntity, startToDate time.Time, startDate time.Time) []CatsEntity {

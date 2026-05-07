@@ -51,7 +51,7 @@ func TestReporter_Generate_withTwoTimeEntriesForTheSameProjectAndDescription(t *
 		},
 	}
 
-	report, err := reporter.Generate(2022, 1, "Category", true, "")
+	report, _, err := reporter.Generate(2022, 1, "Category", true, "")
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, report, "Report should not be empty")
@@ -113,7 +113,7 @@ func TestReporter_Generate_withTwoTimeEntriesForTheSameProjectAndDifferentDescri
 		},
 	}
 
-	report, err := reporter.Generate(2022, 1, "Category", true, "")
+	report, _, err := reporter.Generate(2022, 1, "Category", true, "")
 	assert.Nil(t, err)
 
 	assert.NotEmpty(t, report, "Report should not be empty")
@@ -184,7 +184,7 @@ func TestReporter_Generate_withTwoTimeEntriesForTheDifferentProjectAndDifferentD
 		},
 	}
 
-	report, err := reporter.Generate(2022, 1, "CategoryChanged", false, "")
+	report, _, err := reporter.Generate(2022, 1, "CategoryChanged", false, "")
 	assert.Nil(t, err)
 
 	assert.NotEmpty(t, report, "Report should not be empty")
@@ -234,7 +234,7 @@ func TestReporter_Generate_withSharedTimeEntriesForTwoProjects(t *testing.T) {
 		},
 	}
 
-	report, err := reporter.Generate(2022, 1, "Category", true, "")
+	report, _, err := reporter.Generate(2022, 1, "Category", true, "")
 	assert.Nil(t, err)
 
 	assert.NotEmpty(t, report, "Report should not be empty")
@@ -288,7 +288,7 @@ func TestReporter_Generate_withDescriptionBlockTimeEntry(t *testing.T) {
 		},
 	}
 
-	report, err := reporter.Generate(2022, 1, "Category", true, "")
+	report, _, err := reporter.Generate(2022, 1, "Category", true, "")
 	assert.Nil(t, err)
 
 	assert.NotEmpty(t, report, "Report should not be empty")
@@ -388,7 +388,7 @@ func TestReporter_ShareBillableEntries(t *testing.T) {
 		},
 	}
 
-	report, err := reporter.Generate(2022, 1, "Category", true, "")
+	report, _, err := reporter.Generate(2022, 1, "Category", true, "")
 	assert.Nil(t, err)
 
 	assert.NotEmpty(t, report, "Report should not be empty")
@@ -474,7 +474,7 @@ func TestReporter_ErrorOnShareBillableEntriesWhenNoBillableEntryIsGiven(t *testi
 		},
 	}
 
-	report, err := reporter.Generate(2022, 1, "Category", true, "")
+	report, _, err := reporter.Generate(2022, 1, "Category", true, "")
 
 	assert.Equal(t, err.Error(), "No billable time entries found! Please distribute the shared time manually: https://app.clockify.me/timesheet")
 	assert.Empty(t, report, "Report should be empty")
@@ -507,7 +507,7 @@ func TestReporter_Generate_monthChangeEnd_keepsCurrentMonthEntries(t *testing.T)
 		Repository:           repositoryMock{data: makeWeek5Entries()},
 	}
 
-	report, err := reporter.Generate(2022, 5, "ID", false, "end")
+	report, _, err := reporter.Generate(2022, 5, "ID", false, "end")
 	assert.Nil(t, err)
 
 	entities := strings.Split(strings.TrimRight(report, "\n"), "\n")
@@ -521,7 +521,7 @@ func TestReporter_Generate_monthChangeStart_keepsNewMonthEntries(t *testing.T) {
 		Repository:           repositoryMock{data: makeWeek5Entries()},
 	}
 
-	report, err := reporter.Generate(2022, 5, "ID", false, "start")
+	report, _, err := reporter.Generate(2022, 5, "ID", false, "start")
 	assert.Nil(t, err)
 
 	entities := strings.Split(strings.TrimRight(report, "\n"), "\n")
@@ -547,7 +547,7 @@ func TestReporter_Generate_projectWithoutParentheses_usesDashAsCatsID(t *testing
 		}},
 	}
 
-	report, err := reporter.Generate(2022, 1, "ID", false, "")
+	report, _, err := reporter.Generate(2022, 1, "ID", false, "")
 	assert.Nil(t, err)
 	assert.NotEmpty(t, report)
 
@@ -573,13 +573,90 @@ func TestReporter_Generate_withOneDelimiterInDescription(t *testing.T) {
 		}},
 	}
 
-	report, err := reporter.Generate(2022, 1, "ID", true, "")
+	report, _, err := reporter.Generate(2022, 1, "ID", true, "")
 	assert.Nil(t, err)
 
 	parts := strings.Split(strings.TrimRight(report, "\n"), "\t")
 	assert.Equal(t, "Text field", parts[2])  // Text
 	assert.Equal(t, "Text2 field", parts[3]) // Text2
 	assert.Equal(t, "", parts[4])            // TextExternal empty
+}
+
+// TestReporter_ShareBillableEntries_MultipleSharedEntries is a regression test for a bug where
+// multiple `*` entries caused over-distribution. Each subsequent shared entry used already-inflated
+// durations as proportion base while billableSum remained the original value, producing a total
+// larger than the actual tracked time.
+//
+// Example: 8h billable, shared1=2h, shared2=2h → expected 12h, buggy code produced 12.5h.
+func TestReporter_ShareBillableEntries_MultipleSharedEntries(t *testing.T) {
+	reporter := Reporter{
+		DescriptionDelimiter: "#",
+		Repository: repositoryMock{
+			data: []ClockifyTimeEntry{
+				// 8h billable entry
+				{
+					Description: "Billable Task",
+					TimeInterval: struct {
+						Start    string `json:"start"`
+						End      string `json:"end"`
+						Duration string `json:"duration"`
+					}{
+						Start:    "2022-01-03T07:00:00Z",
+						Duration: "PT8H",
+					},
+					Project: struct {
+						Name string `json:"name"`
+					}{Name: "Project (123)"},
+					Billable: true,
+				},
+				// first shared entry: 2h
+				{
+					Description: "Shared Task 1",
+					TimeInterval: struct {
+						Start    string `json:"start"`
+						End      string `json:"end"`
+						Duration string `json:"duration"`
+					}{
+						Start:    "2022-01-03T15:00:00Z",
+						Duration: "PT2H",
+					},
+					Project: struct {
+						Name string `json:"name"`
+					}{Name: "Shared (*)"},
+					Billable: false,
+				},
+				// second shared entry: 2h
+				{
+					Description: "Shared Task 2",
+					TimeInterval: struct {
+						Start    string `json:"start"`
+						End      string `json:"end"`
+						Duration string `json:"duration"`
+					}{
+						Start:    "2022-01-03T17:00:00Z",
+						Duration: "PT2H",
+					},
+					Project: struct {
+						Name string `json:"name"`
+					}{Name: "Shared (*)"},
+					Billable: false,
+				},
+			},
+		},
+	}
+
+	report, _, err := reporter.Generate(2022, 1, "Category", false, "")
+	assert.Nil(t, err)
+	assert.NotEmpty(t, report)
+
+	entities := strings.Split(strings.TrimRight(report, "\n"), "\n")
+	assert.Equal(t, 1, len(entities), "should have 1 entry")
+
+	parts := strings.Split(entities[0], "\t")
+	assert.Equal(t, "123", parts[0])
+	// 8h billable + 2h shared1 + 2h shared2 = 12h total
+	// Bug produced 12,50 because second shared entry used inflated duration as proportion base
+	assert.Equal(t, "12,00", parts[6], "total hours must equal billable + all shared (not over-distributed)")
 }
 
 type repositoryMock struct {
@@ -597,7 +674,7 @@ func TestReporter_Generate_propagatesFetchError(t *testing.T) {
 		Repository:           repositoryMock{err: errors.New("network failure")},
 	}
 
-	report, err := reporter.Generate(2022, 1, "ID", false, "")
+	report, _, err := reporter.Generate(2022, 1, "ID", false, "")
 	assert.EqualError(t, err, "network failure")
 	assert.Empty(t, report)
 }
