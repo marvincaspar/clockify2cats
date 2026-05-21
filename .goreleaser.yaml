@@ -1,20 +1,10 @@
-# This is an example .goreleaser.yml file with some sensible defaults.
-# Make sure to check the documentation at https://goreleaser.com
-
-# The lines below are called `modelines`. See `:help modeline`
-# Feel free to remove those if you don't want/need to use them.
-# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
-# vim: set ts=2 sw=2 tw=0 fo=cnqoj
-
 project_name: clockify2cats
 
-version: 1
+version: 2
 
 before:
   hooks:
-    # You may remove this if you don't use go modules.
     - go mod tidy
-    # you may remove this if you don't need go generate
     - go generate ./...
 
 builds:
@@ -28,7 +18,7 @@ builds:
       - -X github.com/marvincaspar/clockify2cats/cmd.Version={{ .Env.VERSION }}
 
 archives:
-  - format: tar.gz
+  - formats: ["tar.gz"]
     # this name template makes the OS and Arch compatible with the results of `uname`.
     name_template: >-
       {{ .ProjectName }}_
@@ -40,10 +30,12 @@ archives:
     # use zip for windows archives
     format_overrides:
       - goos: windows
-        format: zip
+        formats: ["zip"]
     files:
       - "!*.md"
 
+checksum:
+  name_template: "checksums.txt"
 
 changelog:
   sort: asc
@@ -52,31 +44,31 @@ changelog:
       - "^docs:"
       - "^test:"
 
-brews:
+homebrew_casks:
   - name: clockify2cats
+    directory: Casks
     homepage: "https://github.com/marvincaspar/clockify2cats"
-    
+
     # Repository to push the generated files to.
     repository:
       owner: marvincaspar
       name: homebrew-tap
       branch: main
-    
+
     # Git author used to commit to the repository
     commit_author:
       name: goreleaserbot
-      email: goreleaser@example.com
-    
-    # Directory inside the repository to put the formula.
-    directory: Formula
+      email: bot@goreleaser.com
 
     # App description
     description: "CLI for exporting clockify data and generate a SAP CATS report as csv"
-    
-    # Custom install command (optional)
-    install: |
-      bin.install "clockify2cats"
-    
-    # Test command to verify the installation
-    test: |
-      system "#{bin}/clockify2cats version"
+
+    # Remove quarantine bit for unsigned binary on macOS
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/clockify2cats"]
+          end
+    generate_completions_from_executable:
+      shell_parameter_format: cobra

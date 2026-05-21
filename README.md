@@ -13,9 +13,7 @@
 ### Homebrew
 
 ```sh
-brew tap marvincaspar/tap
-brew update
-brew install clockify2cats
+brew install --cask marvincaspar/tap/clockify2cats
 ```
 
 ### Github
@@ -52,11 +50,11 @@ curl -H 'X-Api-Key: <API-KEY>' https://api.clockify.me/api/v1/user \
 
 The configuration is stored in a platform-specific directory:
 
-| OS | Path |
-|----|------|
-| Linux | `$XDG_CONFIG_HOME/clockify2cats/config.yaml` (or `$HOME/.config/clockify2cats/config.yaml`) |
-| macOS | `$HOME/Library/Application Support/clockify2cats/config.yaml` |
-| Windows | `%AppData%\clockify2cats\config.yaml` |
+| OS      | Path                                                                                        |
+| ------- | ------------------------------------------------------------------------------------------- |
+| Linux   | `$XDG_CONFIG_HOME/clockify2cats/config.yaml` (or `$HOME/.config/clockify2cats/config.yaml`) |
+| macOS   | `$HOME/Library/Application Support/clockify2cats/config.yaml`                               |
+| Windows | `%AppData%\clockify2cats\config.yaml`                                                       |
 
 ### 2. Generate a report
 
@@ -96,21 +94,22 @@ Use `--month-boundary end` or `--month-boundary start` to split reporting for we
 
 Name your Clockify projects using the pattern `<ProjectName> (<CatsID>)`. The CATS ID is extracted from the parentheses.
 
-| Project name | Behaviour |
-|---|---|
-| `My Project (CATSID-1)` | Maps all time to `CATSID-1` |
-| `My Project (CATSID-1, CATSID-2)` | Splits time equally between `CATSID-1` and `CATSID-2` |
-| `My Project (*)` | Distributes time proportionally across all other billable entries |
+| Project name                                      | Behaviour                                                                |
+| ------------------------------------------------- | ------------------------------------------------------------------------ |
+| `My Project (CATSID-1)`                           | Maps all time to `CATSID-1`                                              |
+| `My Project (CATSID-1, CATSID-2)`                 | Splits time equally between `CATSID-1` and `CATSID-2`                    |
+| `My Project (CATSID-1 (Name1), CATSID-2 (Name2))` | Splits time equally between `CATSID-1` and `CATSID-2`; names are ignored |
+| `My Project (*)`                                  | Distributes time proportionally across all other billable entries        |
 
 ### Description delimiter
 
 Use the description field in Clockify to populate the CATS text columns (only shown with `--text`). Fields are separated by the configured delimiter (default `#`):
 
-| Description | Text | Text 2 | Text External |
-|---|---|---|---|
-| `Task description` | _(empty)_ | `Task description` | _(empty)_ |
-| `Task # Detail` | `Task` | `Detail` | _(empty)_ |
-| `Task # Detail # External` | `Task` | `Detail` | `External` |
+| Description                | Text      | Text 2             | Text External |
+| -------------------------- | --------- | ------------------ | ------------- |
+| `Task description`         | _(empty)_ | `Task description` | _(empty)_     |
+| `Task # Detail`            | `Task`    | `Detail`           | _(empty)_     |
+| `Task # Detail # External` | `Task`    | `Detail`           | `External`    |
 
 ### Proportional time distribution (`*`)
 
@@ -118,12 +117,12 @@ When a project is named `SharedProject (*)`, its recorded hours are distributed 
 
 **Example:** 9 hours logged to `SharedProject (*)` with three other billable projects (3 h each):
 
-| CATS ID | Hours |
-|---|---|
-| CATSID1 | 3.00 + 3.00 (shared) = **6.00** |
-| CATSID2 | 3.00 + 3.00 (shared) = **6.00** |
-| CATSID3 | 3.00 + 3.00 (shared) = **6.00** |
-| CATSID4 _(not billable)_ | 0.00 |
+| CATS ID                  | Hours                           |
+| ------------------------ | ------------------------------- |
+| CATSID1                  | 3.00 + 3.00 (shared) = **6.00** |
+| CATSID2                  | 3.00 + 3.00 (shared) = **6.00** |
+| CATSID3                  | 3.00 + 3.00 (shared) = **6.00** |
+| CATSID4 _(not billable)_ | 0.00                            |
 
 ## Release
 
@@ -134,4 +133,3 @@ goreleaser init
 
 Update the version in `version.txt` and run `make release`.
 This will create a new git tag, build all binaries and publish it to GitHub.
-
