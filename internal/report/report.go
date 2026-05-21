@@ -179,7 +179,16 @@ func (r Reporter) getCatsIDs(t ClockifyTimeEntry) []string {
 	if t.Project.Name != "" {
 		match := rg.FindAllStringSubmatch(t.Project.Name, -1)
 		if len(match) > 0 {
-			return strings.Split(match[0][1], ",")
+			parts := strings.Split(match[0][1], ",")
+			ids := make([]string, len(parts))
+			for i, part := range parts {
+				// Strip optional "(Name)" suffix, e.g. "CATS-1 (Name1)" → "CATS-1"
+				if idx := strings.Index(part, "("); idx != -1 {
+					part = part[:idx]
+				}
+				ids[i] = strings.TrimSpace(part)
+			}
+			return ids
 		}
 	}
 

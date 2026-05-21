@@ -555,6 +555,40 @@ func TestReporter_Generate_projectWithoutParentheses_usesDashAsCatsID(t *testing
 	assert.Equal(t, "-", parts[0])
 }
 
+func TestReporter_Generate_catsIDsWithNames_stripsNames(t *testing.T) {
+	reporter := Reporter{
+		DescriptionDelimiter: "#",
+		Repository: repositoryMock{data: []ClockifyTimeEntry{
+			{
+				Description: "Task",
+				TimeInterval: struct {
+					Start    string `json:"start"`
+					End      string `json:"end"`
+					Duration string `json:"duration"`
+				}{Start: "2022-01-03T08:00:00.000Z", Duration: "PT2H"},
+				Project: struct {
+					Name string `json:"name"`
+				}{Name: "Project name (CATS-1 (Name1), CATS-2 (Name2))"},
+			},
+		}},
+	}
+
+	report, _, err := reporter.Generate(2022, 1, "ID", false, "")
+	assert.Nil(t, err)
+	assert.NotEmpty(t, report)
+
+	entities := strings.Split(strings.TrimRight(report, "\n"), "\n")
+	assert.Equal(t, 2, len(entities), "should produce 2 lines, one per CATS ID")
+
+	parts0 := strings.Split(entities[0], "\t")
+	assert.Equal(t, "CATS-1", parts0[0])
+	assert.Equal(t, "1,00", parts0[6]) // 2h split equally
+
+	parts1 := strings.Split(entities[1], "\t")
+	assert.Equal(t, "CATS-2", parts1[0])
+	assert.Equal(t, "1,00", parts1[6])
+}
+
 func TestReporter_Generate_withOneDelimiterInDescription(t *testing.T) {
 	reporter := Reporter{
 		DescriptionDelimiter: "#",

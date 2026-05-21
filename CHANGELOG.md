@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0] - 2026-05-21
+
+### Added
+
+- Support named CATS IDs in project names: `Project (CATS-1 (Name1), CATS-2 (Name2))` — names are stripped, only IDs are used for report generation
+
 ## [3.3.1] - 2026-04-30
 
 ### Added
